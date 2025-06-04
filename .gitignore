@@ -1,0 +1,14 @@
+.DS_Store
+/.build
+/Packages
+xcuserdata/
+DerivedData/
+.swiftpm/configuration/registries.json
+.swiftpm/xcode/package.xcworkspace/contents.xcworkspacedata
+.netrc
+
+.index-build/
+libInterfaces.dylib.dSYM/
+libplate.dylib.dSYM/
+libInterfaces.dylib*
+libplate.dylib*
