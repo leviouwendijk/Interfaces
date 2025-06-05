@@ -19,6 +19,10 @@ let package = Package(
             url: "https://github.com/leviouwendijk/plate.git",
             branch: "master"
         ),
+        .package(
+            url: "https://github.com/leviouwendijk/Structures.git",
+            branch: "master"
+        ),
     ],
     targets: [
         // Targets are the basic building blocks of a package, defining a module or a test suite.
@@ -26,7 +30,8 @@ let package = Package(
         .target(
             name: "Interfaces",
             dependencies: [
-                .product(name: "plate", package: "plate")
+                .product(name: "plate", package: "plate"),
+                .product(name: "Structures", package: "Structures"),
             ],
             resources: [
                 .process("Resources")
@@ -36,7 +41,8 @@ let package = Package(
             name: "InterfacesTests",
             dependencies: [
                 "Interfaces",
-                .product(name: "plate", package: "plate")
+                .product(name: "plate", package: "plate"),
+                .product(name: "Structures", package: "Structures"),
             ]
         ),
     ]

@@ -1,5 +1,5 @@
 {
-  "originHash" : "1ee9c1da20e647fe4d971fda2b8f7762d5f0aedaf9c8e8bc76c86997b3d034f9",
+  "originHash" : "79918ac3061d3bc4906dee04565e2565aa828ba52b7eea4747fb369acc29cec7",
   "pins" : [
     {
       "identity" : "plate",
@@ -8,6 +8,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "5642b4f547ee9a1a015bc5519ccd358750cc2298"
+      }
+    },
+    {
+      "identity" : "structures",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Structures.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "a4b6ab7dcbe90134c491a091ef7915adc37b46d9"
       }
     }
   ],
