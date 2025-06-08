@@ -1,5 +1,6 @@
 import Foundation
 import plate
+import Structures
 
 public struct MailerAPIRequestDefaults: Encodable {
     public init() {}

@@ -1,4 +1,5 @@
 import Foundation
+import Structures
 
 public struct QuotePayload: MailerAPIPayload {
     public typealias Variables = MailerAPIQuoteVariables

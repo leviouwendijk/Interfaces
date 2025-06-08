@@ -1,5 +1,6 @@
 import Foundation
 import plate
+import Structures
 
 public struct MailerCLIStateVariables {
     public let invoiceId: String
@@ -40,6 +41,7 @@ public struct MailerCLIArguments {
     public let route: MailerAPIRoute?
     public let endpoint: MailerAPIEndpoint?
     public let availabilityJSON: String?
+    public let appointmentsJSON: String?
     public let needsAvailability: Bool
     public let stateVariables: MailerCLIStateVariables
     
@@ -50,6 +52,7 @@ public struct MailerCLIArguments {
         route: MailerAPIRoute?,
         endpoint: MailerAPIEndpoint?,
         availabilityJSON: String?,
+        appointmentsJSON: String?,
         needsAvailability: Bool,
         stateVariables: MailerCLIStateVariables
     ) {
@@ -59,6 +62,7 @@ public struct MailerCLIArguments {
         self.route = route
         self.endpoint = endpoint
         self.availabilityJSON = availabilityJSON
+        self.appointmentsJSON = appointmentsJSON
         self.needsAvailability = needsAvailability
         self.stateVariables = stateVariables
     }

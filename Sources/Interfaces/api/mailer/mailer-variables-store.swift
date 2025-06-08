@@ -1,6 +1,7 @@
 import Foundation
 import Combine
 import SwiftUI
+import Structures
 
 @MainActor
 public class VariableStore: ObservableObject, Sendable {

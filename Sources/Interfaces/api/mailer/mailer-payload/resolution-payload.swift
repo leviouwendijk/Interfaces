@@ -1,4 +1,5 @@
 import Foundation
+import Structures
 
 public struct ResolutionPayload: MailerAPIPayload {
     public typealias Variables = MailerAPIResolutionVariables
