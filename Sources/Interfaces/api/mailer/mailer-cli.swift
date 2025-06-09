@@ -97,11 +97,13 @@ public struct MailerCLIArguments {
 
         case .appointment:
             components.append(r.rawValue)
+            components.append("'\(appointmentsJSON ?? "")'")
+
             components.append("--client \"\(client)\"")
             components.append("--email \"\(email)\"")
             components.append("--dog \"\(dog)\"")
 
-            components.append("--appointments-json '\(appointmentsJSON ?? "")'")
+            // components.append("--appointments-json '\(appointmentsJSON ?? "")'")
 
         default:
             components.append(r.rawValue)
