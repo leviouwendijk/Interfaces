@@ -43,6 +43,7 @@ public struct MailerCLIArguments {
     public let availabilityJSON: String?
     public let appointmentsJSON: String?
     public let needsAvailability: Bool
+    public let isAppointmentRoute: Bool
     public let stateVariables: MailerCLIStateVariables
     
     public init(
@@ -54,6 +55,7 @@ public struct MailerCLIArguments {
         availabilityJSON: String?,
         appointmentsJSON: String?,
         needsAvailability: Bool,
+        isAppointmentRoute: Bool,
         stateVariables: MailerCLIStateVariables
     ) {
         self.client = client
@@ -64,6 +66,7 @@ public struct MailerCLIArguments {
         self.availabilityJSON = availabilityJSON
         self.appointmentsJSON = appointmentsJSON
         self.needsAvailability = needsAvailability
+        self.isAppointmentRoute = isAppointmentRoute
         self.stateVariables = stateVariables
     }
 
@@ -107,6 +110,10 @@ public struct MailerCLIArguments {
 
             if needsAvailability {
                 components.append("--availability-json '\(availabilityJSON ?? "")'")
+            }
+
+            if isAppointmentRoute {
+                components.append("--appointments-json '\(appointmentsJSON ?? "")'")
             }
         }
 
