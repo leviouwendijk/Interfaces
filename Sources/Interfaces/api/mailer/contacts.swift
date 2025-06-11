@@ -54,7 +54,8 @@ public func fetchContacts() throws -> [CNContact] {
     }
 }
 
-@MainActor
+// @MainActor
+nonisolated // make nonisolated so it can be called on any thread
 public func loadContacts() async throws -> [CNContact] {
     try await requestContactsAccess()
     return try fetchContacts()

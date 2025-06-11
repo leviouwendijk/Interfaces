@@ -173,7 +173,8 @@ extension String {
         return false
     }
 
-    @MainActor
+    // @MainActor
+    nonisolated // make nonisolated so it can be called on any thread
     public func filteredClientContacts(
         uponEmptyReturn: EmptyQueryBehavior = .all,
         fuzzyTolerance: Int = 2
