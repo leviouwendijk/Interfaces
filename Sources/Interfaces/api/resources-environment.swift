@@ -4,6 +4,7 @@ import plate
 public enum ResourcesEnvironmentKey: String {
     case h_logo = "HONDENMEESTERS_H_LOGO"
     case quote_template = "HONDENMEESTERS_QUOTE_TEMPLATE"
+    case invoice_template = "HONDENMEESTERS_INVOICE_TEMPLATE"
 }
 
 public struct ResourcesEnvironment {
