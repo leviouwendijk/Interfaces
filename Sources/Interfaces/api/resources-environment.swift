@@ -19,6 +19,7 @@ public enum ResourcesEnvironmentKey: String {
     case h_logo = "HONDENMEESTERS_H_LOGO"
     case quote_template = "HONDENMEESTERS_QUOTE_TEMPLATE"
     case invoice_template = "HONDENMEESTERS_INVOICE_TEMPLATE"
+    case certification_template = "HONDENMEESTERS_CERTIFICATION_TEMPLATE"
     case levi_logo_circled = "LEVIOUWENDIJK_LOGO_CIRCLED"
     case levi_private_invoice = "LEVIOUWENDIJK_PRIVATE_INVOICE"
 }
