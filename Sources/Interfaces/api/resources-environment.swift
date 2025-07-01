@@ -22,6 +22,7 @@ public enum ResourcesEnvironmentKey: String {
     case certification_template = "HONDENMEESTERS_CERTIFICATION_TEMPLATE"
     case levi_logo_circled = "LEVIOUWENDIJK_LOGO_CIRCLED"
     case levi_private_invoice = "LEVIOUWENDIJK_PRIVATE_INVOICE"
+    case levi_signature = "LEVIOUWENDIJK_SIGNATURE"
 }
 
 public struct ResourcesEnvironment {
