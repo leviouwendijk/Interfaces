@@ -7,7 +7,7 @@
       "location" : "https://github.com/leviouwendijk/Extensions.git",
       "state" : {
         "branch" : "master",
-        "revision" : "19662681b24a15f1189c3ca722c0cf75ed94bab2"
+        "revision" : "a5ab0d7021ee8961dbb11e77186e74a996bae048"
       }
     },
     {
@@ -25,7 +25,7 @@
       "location" : "https://github.com/leviouwendijk/Structures.git",
       "state" : {
         "branch" : "master",
-        "revision" : "b0538ca013c8566865eedcc16e231b9a9173b4ff"
+        "revision" : "95c649f0b656375528f71d2234f7314d5de54697"
       }
     }
   ],

@@ -70,6 +70,7 @@ public enum MailerAPIEndpoint: String, CaseIterable, RawRepresentable, Sendable 
     // case templateFetch  = "template/fetch"
     case messageSend    = "message/send"
     case demo
+    case availability
 
     public func viewableString() -> String {
         return self.rawValue.viewableEndpointString()
@@ -94,7 +95,7 @@ public struct MailerAPIPath {
 
     private static let validMap: [MailerAPIRoute:Set<MailerAPIEndpoint>] = [
         .invoice:    [.issue, .expired, .issueSimple],
-        .appointment:[.confirmation],
+        .appointment:[.confirmation, .availability],
         .quote:      [.issue, .follow],
         .lead:       [.confirmation, .follow, .check, .wrongPhone],
         .service:    [.onboarding, .follow, .demo],
