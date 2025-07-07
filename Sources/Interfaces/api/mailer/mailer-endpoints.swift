@@ -108,6 +108,10 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         return "\(base.rawValue)/\(sub.rawValue)"
     }
 
+    public func viewableString() -> String {
+        rawValue.viewableEndpointString()
+    }
+
     public enum MailerAPIEndpointBase: String, CaseIterable, Sendable {
         case confirmation
         case issue
