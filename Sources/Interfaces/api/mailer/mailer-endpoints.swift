@@ -55,25 +55,81 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
     }
 }
 
-public enum MailerAPIEndpoint: String, CaseIterable, RawRepresentable, Sendable {
-    case confirmation
-    case issue
-    case issueSimple = "issue/simple"
-    case follow
-    case expired
-    case onboarding
-    case review
-    case check
-    case wrongPhone = "wrong/phone"
-    case food
-    case fetch
-    // case templateFetch  = "template/fetch"
-    case messageSend    = "message/send"
-    case demo
-    case availability
+// public enum MailerAPIEndpoint: String, CaseIterable, RawRepresentable, Sendable {
+//     case confirmation
+//     case issue
+//     case issueSimple = "issue/simple"
+//     case follow
+//     case expired
+//     case onboarding
+//     case review
+//     case check
+//     case wrongPhone = "wrong/phone"
+//     case food
+//     case fetch
+//     // case templateFetch  = "template/fetch"
+//     case messageSend    = "message/send"
+//     case demo
+//     case availabilityRequest = "availability/request"
+//     case availabilityDecrypt = "availability/decrypt"
 
-    public func viewableString() -> String {
-        return self.rawValue.viewableEndpointString()
+//     public func viewableString() -> String {
+//         return self.rawValue.viewableEndpointString()
+//     }
+// }
+
+public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
+    public let base: MailerAPIEndpointBase
+    public let sub: MailerAPIEndpointSub?
+
+    public init(
+        base: MailerAPIEndpointBase,
+        sub: MailerAPIEndpointSub? = nil
+    ) {
+        self.base = base
+        self.sub = sub
+    }
+
+    public init?(rawValue: String) {
+        let parts = rawValue.split(separator: "/", maxSplits: 1).map(String.init)
+        guard let b = MailerAPIEndpointBase(rawValue: parts[0]) else { return nil }
+        self.base = b
+        if parts.count == 2, let s = MailerAPIEndpointSub(rawValue: parts[1]) {
+            self.sub = s
+        } else {
+            self.sub = nil
+        }
+    }
+
+    public var rawValue: String {
+        guard let sub = sub else {
+            return base.rawValue
+        }
+        return "\(base.rawValue)/\(sub.rawValue)"
+    }
+
+    public enum MailerAPIEndpointBase: String, CaseIterable, Sendable {
+        case confirmation
+        case issue
+        case follow
+        case expired
+        case onboarding
+        case review
+        case check
+        case wrong
+        case food
+        case fetch
+        case message
+        case demo
+        case availability
+    }
+
+    public enum MailerAPIEndpointSub: String, CaseIterable, Sendable {
+        case simple        // “issue/simple”
+        case phone         // “wrong/phone”
+        case send          // “message/send”
+        case request       // “availability/request”
+        case decrypt       // “availability/decrypt”
     }
 }
 
@@ -93,16 +149,45 @@ public struct MailerAPIPath {
         return url
     }
 
-    private static let validMap: [MailerAPIRoute:Set<MailerAPIEndpoint>] = [
-        .invoice:    [.issue, .expired, .issueSimple],
-        .appointment:[.confirmation, .availability],
-        .quote:      [.issue, .follow],
-        .lead:       [.confirmation, .follow, .check, .wrongPhone],
-        .service:    [.onboarding, .follow, .demo],
-        .resolution: [.review, .follow],
-        .affiliate:  [.food],
-        .custom:     [.messageSend],
-        .template:   [.fetch]
+    private static let validMap: [MailerAPIRoute: Set<MailerAPIEndpoint>] = [
+        .invoice: [
+            .init(base: .issue),
+            .init(base: .issue, sub: .simple),
+            .init(base: .expired)
+        ],
+        .appointment: [
+            .init(base: .confirmation),
+            .init(base: .availability, sub: .request),
+            .init(base: .availability, sub: .decrypt)
+        ],
+        .quote: [
+            .init(base: .issue),
+            .init(base: .follow)
+        ],
+        .lead: [
+            .init(base: .confirmation),
+            .init(base: .follow),
+            .init(base: .check),
+            .init(base: .wrong, sub: .phone)
+        ],
+        .service: [
+            .init(base: .onboarding),
+            .init(base: .follow),
+            .init(base: .demo)
+        ],
+        .resolution: [
+            .init(base: .review),
+            .init(base: .follow)
+        ],
+        .affiliate: [
+            .init(base: .food)
+        ],
+        .custom: [
+            .init(base: .message, sub: .send)
+        ],
+        .template: [
+            .init(base: .fetch)
+        ]
     ]
 
     public init(
