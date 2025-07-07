@@ -64,6 +64,7 @@ public enum MailerAPIEndpoint: String, CaseIterable, RawRepresentable, Sendable 
     case onboarding
     case review
     case check
+    case wrongPhone = "wrong/phone"
     case food
     case fetch
     // case templateFetch  = "template/fetch"
@@ -95,7 +96,7 @@ public struct MailerAPIPath {
         .invoice:    [.issue, .expired, .issueSimple],
         .appointment:[.confirmation],
         .quote:      [.issue, .follow],
-        .lead:       [.confirmation, .follow, .check],
+        .lead:       [.confirmation, .follow, .check, .wrongPhone],
         .service:    [.onboarding, .follow, .demo],
         .resolution: [.review, .follow],
         .affiliate:  [.food],

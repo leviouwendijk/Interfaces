@@ -157,6 +157,7 @@ public struct MailerAPIEmailTo: Encodable {
 
 public enum MailerAPIEmailAttachmentFileType: String, Encodable {
     case pdf = "pdf"
+    case ics = "ics"
     case jpg = "jpg"
     case png = "png"
     case txt = "txt"
@@ -169,7 +170,7 @@ public enum MailerAPIEmailAttachmentFileType: String, Encodable {
 }
 
 public struct MailerAPIEmailAttachment: Encodable {
-    public let path: String
+    public let path: String?
     public let type: MailerAPIEmailAttachmentFileType
     public let value: String
     public let name: String
@@ -188,6 +189,17 @@ public struct MailerAPIEmailAttachment: Encodable {
 
         self.type = type ?? .from(extension: fileExtension)
         self.name = name ?? fileURL.lastPathComponent
+    }
+
+    public init(
+        data: Data,
+        type: MailerAPIEmailAttachmentFileType,
+        name: String
+    ) {
+        self.path = nil
+        self.value = data.base64EncodedString()
+        self.type  = type
+        self.name  = name
     }
 
     public func dictionary() -> [String: String] {
