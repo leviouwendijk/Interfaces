@@ -20,6 +20,7 @@ public struct CustomPayload: MailerAPIPayload {
             addHeaders:   [String: String] = [:],
             includeQuote: Bool = false,
             includeInvoice: Bool = false,
+            subject:      String
     ) throws {
         self.endpoint = endpoint
 
@@ -63,7 +64,7 @@ public struct CustomPayload: MailerAPIPayload {
         self.content = MailerAPIRequestContent(
             from:        from,
             to:          to,
-            subject:     nil,
+            subject:     subject,
             template:    template,
             headers:     addHeaders,
             replyTo:     replyTo,
