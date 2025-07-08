@@ -81,16 +81,21 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
 public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
     public let base: MailerAPIEndpointBase
     public let sub: MailerAPIEndpointSub?
+    public let isFrontEndVisible: Bool
 
     public init(
         base: MailerAPIEndpointBase,
-        sub: MailerAPIEndpointSub? = nil
+        sub: MailerAPIEndpointSub? = nil,
+        isFrontEndVisible: Bool = true
     ) {
         self.base = base
         self.sub = sub
+        self.isFrontEndVisible = isFrontEndVisible
     }
 
-    public init?(rawValue: String) {
+    public init?(
+        rawValue: String
+    ) {
         let parts = rawValue.split(separator: "/", maxSplits: 1).map(String.init)
         guard let b = MailerAPIEndpointBase(rawValue: parts[0]) else { return nil }
         self.base = b
@@ -99,6 +104,8 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         } else {
             self.sub = nil
         }
+
+        self.isFrontEndVisible = true // default value
     }
 
     public var rawValue: String {
@@ -156,13 +163,13 @@ public struct MailerAPIPath {
     private static let validMap: [MailerAPIRoute: Set<MailerAPIEndpoint>] = [
         .invoice: [
             .init(base: .issue),
-            .init(base: .issue, sub: .simple),
+            .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
             .init(base: .expired)
         ],
         .appointment: [
             .init(base: .confirmation),
             .init(base: .availability, sub: .request),
-            .init(base: .availability, sub: .decrypt)
+            .init(base: .availability, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
         ],
         .quote: [
             .init(base: .issue),
