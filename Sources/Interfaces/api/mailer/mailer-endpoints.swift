@@ -133,6 +133,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case message
         case demo
         case availability
+        case agreement
     }
 
     public enum MailerAPIEndpointSub: String, CaseIterable, Sendable {
@@ -173,7 +174,8 @@ public struct MailerAPIPath {
         ],
         .quote: [
             .init(base: .issue),
-            .init(base: .follow)
+            .init(base: .follow),
+            .init(base: .agreement)
         ],
         .lead: [
             .init(base: .confirmation),
