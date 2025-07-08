@@ -17,7 +17,8 @@ public struct QuoteAgreementPayload: MailerAPIPayload {
             emailsBCC:    [String]? = nil,
             emailsReplyTo:[String]? = nil,
             attachments:  [MailerAPIEmailAttachment]? = nil,
-            addHeaders:   [String: String] = [:]
+            addHeaders:   [String: String] = [:],
+            includeQuote: Bool = false
     ) throws {
         self.endpoint = endpoint
 
@@ -30,7 +31,7 @@ public struct QuoteAgreementPayload: MailerAPIPayload {
         let quotePath = try MailerAPIEnvironment.require(.quotePath)
         let quote = try MailerAPIEmailAttachment(path: quotePath)
 
-        if attachments == nil {
+        if attachments == nil && (endpoint.base == .issue || includeQuote) {
             attach.add(quote)
         }
 
