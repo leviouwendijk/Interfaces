@@ -175,7 +175,8 @@ public struct MailerAPIPath {
         .quote: [
             .init(base: .issue),
             .init(base: .follow),
-            .init(base: .agreement)
+            .init(base: .agreement, sub: .request),
+            .init(base: .agreement, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
         ],
         .lead: [
             .init(base: .confirmation),
