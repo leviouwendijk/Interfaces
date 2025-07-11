@@ -33,8 +33,9 @@ public enum PDFGenerationError: PlateLibraryError {
     case cssFileMissing(URL)
     case processFailed(exitCode: Int32, output: String)
     case cannotRunProcess(underlying: Error)
+    case cannotCreateURLFromStringPath(String)
     
-    var localizedDescription: String {
+    public var localizedDescription: String {
         switch self {
         case .htmlFileMissing(let url):
             return "HTML file not found at \(url.path)."
@@ -44,6 +45,8 @@ public enum PDFGenerationError: PlateLibraryError {
             return "WeasyPrint exited with code \(code). Output:\n\(output)"
         case .cannotRunProcess(let err):
             return "Unable to launch WeasyPrint process: \(err.localizedDescription)"
+        case .cannotCreateURLFromStringPath(let path):
+            return "Error in trying to process path-string: \(path)"
         }
     }
 }

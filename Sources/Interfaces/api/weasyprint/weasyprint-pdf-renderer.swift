@@ -56,7 +56,11 @@ public struct WeasyPrintRenderer: PDFRenderable {
 }
 
 extension String {
-    public func weasyPDF(css: CSSPageSetting = CSSPageSetting(), destination: String, encoding: String.Encoding = .utf8) throws {
+    public func weasyPDF(
+        css: CSSPageSetting = CSSPageSetting(),
+        destination: String,
+        encoding: String.Encoding = .utf8
+    ) throws {
         let htmlTemp = try self.tempFile(fileExtension: "html", encoding: encoding)
 
         let cssString = css.css()
@@ -64,5 +68,19 @@ extension String {
 
         let renderer = WeasyPrintRenderer(encoding: encoding)
         try renderer.pdf(html: htmlTemp, css: cssTemp, destination: destination)
+    }
+
+    public func weasyPathPDF(
+        css: CSSPageSetting = CSSPageSetting(),
+        destination: String,
+        encoding: String.Encoding = .utf8
+    ) throws {
+        let htmlURL = URL(filePath: self)
+
+        let cssString = css.css()
+        let cssTemp = try cssString.tempFile(fileExtension: "css")
+
+        let renderer = WeasyPrintRenderer(encoding: encoding)
+        try renderer.pdf(html: htmlURL, css: cssTemp, destination: destination)
     }
 }
