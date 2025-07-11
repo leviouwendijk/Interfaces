@@ -28,7 +28,11 @@ public actor StandardLogger {
     
     public init(for applicationName: String) throws {
         let home     = Home.string()
-        let url      = URL(filePath: home).appendingPathComponent("\(applicationName).log")
+
+        let url      = URL(filePath: home)
+        .appendingPathComponent("api-logs")
+        .appendingPathComponent("\(applicationName).log")
+
         self.fileHandle = try Self.makeFileHandle(for: url)
     }
 
