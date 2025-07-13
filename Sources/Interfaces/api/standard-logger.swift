@@ -3,13 +3,14 @@ import plate
 import Structures
 
 public enum LogLevel: Int, Comparable {
-    case info, warn, error
+    case info, warn, error, critical
 
     public var label: String {
         switch self {
         case .info:  return "INFO"
         case .warn:  return "WARN"
         case .error: return "ERROR"
+        case .critical: return "CRITICAL"
         }
     }
 
@@ -69,6 +70,7 @@ public actor StandardLogger {
     public nonisolated func info(_  message: String) { Task { await log(message, level: .info)  } }
     public nonisolated func warn(_  message: String) { Task { await log(message, level: .warn)  } }
     public nonisolated func error(_ message: String) { Task { await log(message, level: .error) } }
+    public nonisolated func critical(_ message: String) { Task { await log(message, level: .critical) } }
 
     private static let sharedFormatter: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
