@@ -33,16 +33,13 @@ public enum CSSPageNumberFooterContent: String {
     public var value: String {
         switch self {
         case .x:
-            return "content: \"counter(page)\";"
-
+            return "content: counter(page);"
         case .x_of_y:
-            return "content: \"counter(page) \" of \" counter(pages);"
-
+            return #"content: counter(page) " of " counter(pages);"#
         case .x_slash_y:
-            return "content: \"counter(page) \" / \" counter(pages);"
-
+            return #"content: counter(page) " / " counter(pages);"#
         case .skip:
-            return "content: \"none\";"
+            return "content: none;"
         }
     }
 
