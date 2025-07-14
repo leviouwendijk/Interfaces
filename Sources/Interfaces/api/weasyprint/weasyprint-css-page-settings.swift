@@ -24,20 +24,101 @@ public struct CSSMargins {
     }
 }
 
+public enum CSSPageNumberFooterContent: String {
+    case x
+    case x_of_y
+    case x_slash_y
+    case skip
+
+    public var value: String {
+        switch self {
+        case .x:
+            return "content: \"counter(page)\";"
+
+        case .x_of_y:
+            return "content: \"counter(page) \" of \" counter(pages);"
+
+        case .x_slash_y:
+            return "content: \"counter(page) \" / \" counter(pages);"
+
+        case .skip:
+            return "content: \"none\";"
+        }
+    }
+
+    public static func firstPageSkip() -> String {
+        return """
+        @page:first {
+            @bottom-center {
+                \(Self.skip.value)
+            }
+        }
+        """
+    }
+}
+
 public struct CSSPageSetting {
     public let orientation: PageOrientation
     public let margins: CSSMargins
+    public let header: String?
+    public let footer: String?
+    public let skipFirstPageFooter: Bool
 
     public init(
         orientation: PageOrientation = .portrait,
-        margins: CSSMargins = CSSMargins()
+        margins: CSSMargins = CSSMargins(),
+        header: String? = nil,
+        footer: String? = CSSPageNumberFooterContent.x.value,
+        skipFirstPageFooter: Bool = true
     ) {
         self.orientation = orientation
         self.margins = margins
+        self.header = header
+        self.footer = footer
+        self.skipFirstPageFooter = skipFirstPageFooter
     }
 
     public func css() -> String {
-        return orientation.css(margins: margins)
+        let open = "@page {"
+        let close = "}"
+
+        var page = open.appendingNewline()
+            
+        page.append(
+            orientation.css(margins: margins)
+            .appendingNewline()
+        )
+
+        if let hdr = header {
+            page += """
+            
+            @top-center {
+                \(hdr)
+            }
+            """
+        }
+
+        if let ftr = footer {
+            page += """
+            
+            @bottom-center {
+                \(ftr)
+            }
+            """
+        }
+
+        page.append(close)
+
+        if skipFirstPageFooter {
+            page = page
+            .appendingNewline()
+            .appendingNewline()
+
+            page.append(
+                CSSPageNumberFooterContent.firstPageSkip()
+            )
+        }
+        return page
     }
 }
 
@@ -49,29 +130,8 @@ public enum PageOrientation: String, RawRepresentable {
         let orientation = self.rawValue
 
         return """
-        @page {
             size: A4 \(orientation);
             margin: \(margins.cssValue);
-        }
         """
     }
-    
-    // public func css(margin: Int = 20) -> String {
-    //     switch self {
-    //     case .portrait:
-    //         return """
-    //         @page {
-    //             size: A4 portrait;
-    //             margin: \(margin)mm;
-    //         }
-    //         """
-    //     case .landscape:
-    //         return """
-    //         @page {
-    //             size: A4 landscape;
-    //             margin: \(margin)mm;
-    //         }
-    //         """
-    //     }
-    // }
 }
