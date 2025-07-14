@@ -1,43 +1,77 @@
 import Foundation
 import plate
 
-public struct CSSPageSetting {
-    public let orientation: PageOrientation
-    public let margin: Int
+public struct CSSMargins {
+    public let top: Int
+    public let right: Int
+    public let bottom: Int
+    public let left: Int
 
     public init(
-        orientation: PageOrientation = .portrait,
-        margin: Int = 20
+        top: Int = 20,
+        right: Int = 20,
+        bottom: Int = 20,
+        left: Int = 20
     ) {
-        self.orientation = orientation
-        self.margin = margin
+        self.top = top
+        self.right = right
+        self.bottom = bottom
+        self.left = left
     }
 
-    public func css() -> String {
-        return orientation.css(margin: margin)
+    public var cssValue: String {
+        return "\(top)mm \(right)mm \(bottom)mm \(left)mm"
     }
 }
 
-public enum PageOrientation {
+public struct CSSPageSetting {
+    public let orientation: PageOrientation
+    public let margins: CSSMargins
+
+    public init(
+        orientation: PageOrientation = .portrait,
+        margins: CSSMargins = CSSMargins()
+    ) {
+        self.orientation = orientation
+        self.margins = margins
+    }
+
+    public func css() -> String {
+        return orientation.css(margins: margins)
+    }
+}
+
+public enum PageOrientation: String, RawRepresentable {
     case portrait
     case landscape
-    
-    public func css(margin: Int = 20) -> String {
-        switch self {
-        case .portrait:
-            return """
-            @page {
-                size: A4 portrait;
-                margin: \(margin)mm;
-            }
-            """
-        case .landscape:
-            return """
-            @page {
-                size: A4 landscape;
-                margin: \(margin)mm;
-            }
-            """
+
+    public func css(margins: CSSMargins) -> String {
+        let orientation = self.rawValue
+
+        return """
+        @page {
+            size: A4 \(orientation);
+            margin: \(margins.cssValue);
         }
+        """
     }
+    
+    // public func css(margin: Int = 20) -> String {
+    //     switch self {
+    //     case .portrait:
+    //         return """
+    //         @page {
+    //             size: A4 portrait;
+    //             margin: \(margin)mm;
+    //         }
+    //         """
+    //     case .landscape:
+    //         return """
+    //         @page {
+    //             size: A4 landscape;
+    //             margin: \(margin)mm;
+    //         }
+    //         """
+    //     }
+    // }
 }
