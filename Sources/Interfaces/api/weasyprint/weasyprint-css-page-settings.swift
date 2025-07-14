@@ -2,16 +2,16 @@ import Foundation
 import plate
 
 public struct CSSMargins {
-    public let top: Int
-    public let right: Int
-    public let bottom: Int
-    public let left: Int
+    public let top: Double
+    public let right: Double
+    public let bottom: Double
+    public let left: Double
 
     public init(
-        top: Int = 20,
-        right: Int = 20,
-        bottom: Int = 20,
-        left: Int = 20
+        top: Double = 20.0,
+        right: Double = 20.0,
+        bottom: Double = 20.0,
+        left: Double = 20.0
     ) {
         self.top = top
         self.right = right
