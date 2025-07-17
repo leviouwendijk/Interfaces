@@ -202,6 +202,17 @@ public struct MailerAPIEmailAttachment: Encodable {
         self.name  = name
     }
 
+    public init(
+        base64: String,
+        type: MailerAPIEmailAttachmentFileType,
+        name: String
+    ) {
+        self.path = nil
+        self.value = base64
+        self.type  = type
+        self.name  = name
+    }
+
     public func dictionary() -> [String: String] {
         return [
             "type": type.rawValue,
