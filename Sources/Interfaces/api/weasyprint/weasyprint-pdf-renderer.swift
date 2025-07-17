@@ -1,11 +1,11 @@
 import Foundation
 import plate
 
-public protocol PDFRenderable {
+public protocol PDFRenderable: Sendable {
     func pdf(html: URL, css: URL, destination: String) throws
 }
 
-public struct WeasyPrintRenderer: PDFRenderable {
+public struct WeasyPrintRenderer: PDFRenderable, Sendable {
     private let weasyBinaryPath: String
     public let encoding: String.Encoding
     

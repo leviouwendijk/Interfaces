@@ -1,7 +1,7 @@
 import Foundation
 import plate
 
-public struct CSSMargins {
+public struct CSSMargins: Sendable {
     public let top: Double
     public let right: Double
     public let bottom: Double
@@ -24,7 +24,7 @@ public struct CSSMargins {
     }
 }
 
-public enum CSSPageNumberFooterContent: String {
+public enum CSSPageNumberFooterContent: String, Sendable {
     case x
     case x_of_y
     case x_slash_y
@@ -54,7 +54,7 @@ public enum CSSPageNumberFooterContent: String {
     }
 }
 
-public struct CSSPageSetting {
+public struct CSSPageSetting: Sendable {
     public let orientation: PageOrientation
     public let margins: CSSMargins
     public let header: String?
@@ -119,7 +119,7 @@ public struct CSSPageSetting {
     }
 }
 
-public enum PageOrientation: String, RawRepresentable {
+public enum PageOrientation: String, RawRepresentable, Sendable {
     case portrait
     case landscape
 
