@@ -6,7 +6,7 @@ public final class HTMLNode {
     public let attributes: [String: String]
     public let children: [HTMLNode]
 
-    init(
+    public init(
         tag: String? = nil,
         text: String? = nil,
         attributes: [String: String] = [:],
