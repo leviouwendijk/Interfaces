@@ -4,7 +4,7 @@ extension MailerAPIEndpoint {
     public static let issue               = MailerAPIEndpoint(base: .issue)
     public static let follow              = MailerAPIEndpoint(base: .follow)
     public static let expired             = MailerAPIEndpoint(base: .expired)
-    public static let onboarding          = MailerAPIEndpoint(base: .onboarding)
+    // public static let onboarding          = MailerAPIEndpoint(base: .onboarding)
     public static let review              = MailerAPIEndpoint(base: .review)
     public static let check               = MailerAPIEndpoint(base: .check)
     public static let food                = MailerAPIEndpoint(base: .food)
