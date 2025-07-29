@@ -32,6 +32,7 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
     case resolution
     case custom
     case template
+    case onboarding
 
     public func alias() -> String {
         MailerAPIAlias
@@ -142,6 +143,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case send          // “message/send”
         case request       // “availability/request”
         case decrypt       // “availability/decrypt”
+        case assessment     // "onboarding/assessment"
     }
 }
 
