@@ -190,7 +190,7 @@ public struct MailerAPIPath {
         .onboarding: [
             .init(base: .assessment, sub: .request),
             .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
-            .init(base: .assessment, sub: .submit)
+            .init(base: .assessment, sub: .submit, isFrontEndVisible: false)
         ],
         .service: [
             // .init(base: .onboarding),
