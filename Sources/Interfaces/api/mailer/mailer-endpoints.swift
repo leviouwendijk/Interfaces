@@ -125,7 +125,8 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case issue
         case follow
         case expired
-        case onboarding
+        // case onboarding
+        case assessment
         case review
         case check
         case wrong
@@ -187,9 +188,9 @@ public struct MailerAPIPath {
             .init(base: .wrong, sub: .phone)
         ],
         .onboarding: [
-            .init(base: .onboarding, sub: .request),
-            .init(base: .onboarding, sub: .decrypt, isFrontEndVisible: false),
-            .init(base: .onboarding, sub: .submit)
+            .init(base: .assessment, sub: .request),
+            .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
+            .init(base: .assessment, sub: .submit)
         ],
         .service: [
             // .init(base: .onboarding),
