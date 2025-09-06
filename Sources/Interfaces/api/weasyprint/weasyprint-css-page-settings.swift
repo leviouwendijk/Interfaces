@@ -19,6 +19,15 @@ public struct CSSMargins: Sendable {
         self.left = left
     }
 
+    public init(
+        _ universalMargin: Double
+    ) {
+        self.top = universalMargin
+        self.right = universalMargin
+        self.bottom = universalMargin
+        self.left = universalMargin
+    }
+
     public var cssValue: String {
         return "\(top)mm \(right)mm \(bottom)mm \(left)mm"
     }
