@@ -28,7 +28,7 @@ public enum FileProcessingError: PlateLibraryError {
     }
 }
 
-public enum PDFGenerationError: PlateLibraryError {
+public enum PDFGenerationError: PlateLibraryError, Error, LocalizedError {
     case htmlFileMissing(URL)
     case cssFileMissing(URL)
     case processFailed(exitCode: Int32, output: String)
