@@ -135,27 +135,22 @@ public enum MailerAPIEndpointStage: String, CaseIterable, Sendable {
     case other
 }
 
-public struct MailerAPIMapObject {
-    public let route: MailerAPIRoute
+public struct MailerAPIMapObject: Sendable {
     public let endpoints: Set<MailerAPIEndpoint>
     public let stage: MailerAPIEndpointStage
     
     public init(
-        route: MailerAPIRoute,
         endpoints: Set<MailerAPIEndpoint>,
         stage: MailerAPIEndpointStage
     ) {
-        self.route = route
         self.endpoints = endpoints
         self.stage = stage
     }
 
     public init(
-        _ route: MailerAPIRoute,
         _ endpoints: Set<MailerAPIEndpoint>,
         _ stage: MailerAPIEndpointStage
     ) {
-        self.route = route
         self.endpoints = endpoints
         self.stage = stage
     }
@@ -229,9 +224,8 @@ public struct MailerAPIPath {
     //     ],
     // ]
 
-    private static let validMap: [MailerAPIMapObject] = [
-        .init(
-            .invoice,
+    private static let validMap: [MailerAPIRoute: MailerAPIMapObject] = [
+        .invoice: .init(
             [
                 .init(base: .issue),
                 .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
@@ -240,8 +234,7 @@ public struct MailerAPIPath {
             .operations
         ),
 
-        .init(
-            .appointment,
+        .appointment: .init(
             [
                 .init(base: .confirmation),
                 .init(base: .availability, sub: .request),
@@ -250,8 +243,7 @@ public struct MailerAPIPath {
             .operations
         ),
 
-        .init(
-            .quote,
+        .quote: .init(
             [
                 .init(base: .issue),
                 .init(base: .follow),
@@ -261,8 +253,7 @@ public struct MailerAPIPath {
             .sales
         ),
 
-        .init(
-            .lead, 
+        .lead: .init(
             [
                 .init(base: .confirmation),
                 .init(base: .follow),
@@ -272,8 +263,7 @@ public struct MailerAPIPath {
             .sales
         ),
 
-        .init(
-            .onboarding,
+        .onboarding: .init(
             [
                 .init(base: .assessment, sub: .request),
                 .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
@@ -282,8 +272,7 @@ public struct MailerAPIPath {
             .sales
         ),
 
-        .init(
-            .service,
+        .service: .init(
             [
                 // .init(base: .onboarding),
                 .init(base: .follow),
@@ -292,8 +281,7 @@ public struct MailerAPIPath {
             .operations
         ),
         
-        .init(
-            .resolution,
+        .resolution: .init(
             [
                 .init(base: .review),
                 .init(base: .follow)
@@ -301,16 +289,14 @@ public struct MailerAPIPath {
             .operations
         ),
             
-        .init(
-            .affiliate,
+        .affiliate: .init(
             [
                 .init(base: .food)
             ],
             .operations
         ),
 
-        .init(
-            .custom,
+        .custom: .init(
             [
                 .init(base: .message, sub: .send)
             ],
@@ -318,16 +304,14 @@ public struct MailerAPIPath {
         ),
 
 
-        .init(
-            .template,
+        .template: .init(
             [
                 .init(base: .fetch)
             ],
             .other
         ),
 
-        .init(
-            .support,
+        .support: .init(
             [
                 .init(base: .check)
             ],
@@ -335,16 +319,9 @@ public struct MailerAPIPath {
         )
     ]
 
-    public let validIndex: [MailerAPIRoute: MailerAPIMapObject] = {
-        Dictionary(uniqueKeysWithValues: validMap.map { ($0.route, $0) })
-    }()
-
-    public func allowedEndpoints(for route: MailerAPIRoute) -> Set<MailerAPIEndpoint>? {
-        return validIndex[route]?.endpoints
-    }
-
-    public func stage(for route: MailerAPIRoute) -> MailerAPIEndpointStage? {
-        return validIndex[route]?.stage
+    public static func isValid(endpoint: MailerAPIEndpoint, for route: MailerAPIRoute) -> Bool {
+        guard let map = Self.validMap[route] else { return false }
+        return map.endpoints.contains(endpoint)
     }
 
     public init(
@@ -354,8 +331,7 @@ public struct MailerAPIPath {
         guard
             // let allowed = MailerAPIPath.validMap[route],
             // allowed.contains(endpoint)
-            let mapObject = self.validIndex[route],
-            mapObject.endpoints.contains(endpoint)
+            Self.isValid(endpoint: endpoint, for: route)
         else {
             throw MailerAPIError.invalidEndpoint(route: route, endpoint: endpoint)
         }
@@ -384,13 +360,17 @@ public struct MailerAPIPath {
         return string(baseURL: base)
     }
 
+    // public static func endpoints(for route: MailerAPIRoute) -> [MailerAPIEndpoint] {
+    //     return Array(validMap[route] ?? [])
+    // }
+
     public static func endpoints(for route: MailerAPIRoute) -> [MailerAPIEndpoint] {
-        return Array(validMap[route] ?? [])
+        return Array(Self.validMap[route]?.endpoints ?? [])
     }
 
-    public static func isValid(endpoint: MailerAPIEndpoint, for route: MailerAPIRoute) -> Bool {
-        validMap[route]?.contains(endpoint) ?? false
-    }
+    // public static func isValid(endpoint: MailerAPIEndpoint, for route: MailerAPIRoute) -> Bool {
+    //     validMap[route]?.contains(endpoint) ?? false
+    // }
 
     public var requiresAvailability: Bool {
         route.endpointsRequiringAvailability.contains(endpoint)
