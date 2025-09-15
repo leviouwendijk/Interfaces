@@ -325,6 +325,10 @@ public struct MailerAPIPath {
         return map.endpoints.contains(endpoint)
     }
 
+    public static func stage(for route: MailerAPIRoute) -> MailerAPIEndpointStage? {
+        Self.validMap[route]?.stage
+    }
+
     public init(
         route: MailerAPIRoute,
         endpoint: MailerAPIEndpoint
