@@ -232,7 +232,7 @@ public struct MailerAPIPath {
                 .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
                 .init(base: .expired)
             ],
-            .operations
+            .billing
         ),
 
         .appointment: .init(
