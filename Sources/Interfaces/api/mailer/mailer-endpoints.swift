@@ -18,6 +18,7 @@ public enum MailerAPIAlias: String, CaseIterable, RawRepresentable, Sendable {
         .resolution:  .relaties,
         .affiliate:   .relaties,
         .custom:      .relaties,
+        .support:     .relaties,
         .template:    .intern
     ]
 }
@@ -33,6 +34,7 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
     case custom
     case template
     case onboarding
+    case support
 
     public func alias() -> String {
         MailerAPIAlias
@@ -56,29 +58,6 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
     }
 }
 
-// public enum MailerAPIEndpoint: String, CaseIterable, RawRepresentable, Sendable {
-//     case confirmation
-//     case issue
-//     case issueSimple = "issue/simple"
-//     case follow
-//     case expired
-//     case onboarding
-//     case review
-//     case check
-//     case wrongPhone = "wrong/phone"
-//     case food
-//     case fetch
-//     // case templateFetch  = "template/fetch"
-//     case messageSend    = "message/send"
-//     case demo
-//     case availabilityRequest = "availability/request"
-//     case availabilityDecrypt = "availability/decrypt"
-
-//     public func viewableString() -> String {
-//         return self.rawValue.viewableEndpointString()
-//     }
-// }
-
 public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
     public let base: MailerAPIEndpointBase
     public let sub: MailerAPIEndpointSub?
@@ -87,7 +66,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
     public init(
         base: MailerAPIEndpointBase,
         sub: MailerAPIEndpointSub? = nil,
-        isFrontEndVisible: Bool = true
+        isFrontEndVisible: Bool = true,
     ) {
         self.base = base
         self.sub = sub
@@ -146,6 +125,41 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case decrypt       // “availability/decrypt”
         case submit
     }
+
+}
+
+public enum MailerAPIEndpointStage: String, CaseIterable, Sendable {
+    case sales
+    case operations
+    case billing
+    case other
+}
+
+public struct MailerAPIMapObject {
+    public let route: MailerAPIRoute
+    public let endpoints: Set<MailerAPIEndpoint>
+    public let stage: MailerAPIEndpointStage
+    
+    public init(
+        route: MailerAPIRoute,
+        endpoints: Set<MailerAPIEndpoint>,
+        stage: MailerAPIEndpointStage
+    ) {
+        self.route = route
+        self.endpoints = endpoints
+        self.stage = stage
+    }
+
+    public init(
+        _ route: MailerAPIRoute,
+        _ endpoints: Set<MailerAPIEndpoint>,
+        _ stage: MailerAPIEndpointStage
+    ) {
+        self.route = route
+        self.endpoints = endpoints
+        self.stage = stage
+    }
+
 }
 
 public struct MailerAPIPath {
@@ -164,63 +178,186 @@ public struct MailerAPIPath {
         return url
     }
 
-    private static let validMap: [MailerAPIRoute: Set<MailerAPIEndpoint>] = [
-        .invoice: [
-            .init(base: .issue),
-            .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
-            .init(base: .expired)
-        ],
-        .appointment: [
-            .init(base: .confirmation),
-            .init(base: .availability, sub: .request),
-            .init(base: .availability, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
-        ],
-        .quote: [
-            .init(base: .issue),
-            .init(base: .follow),
-            .init(base: .agreement, sub: .request),
-            .init(base: .agreement, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
-        ],
-        .lead: [
-            .init(base: .confirmation),
-            .init(base: .follow),
-            .init(base: .check),
-            .init(base: .wrong, sub: .phone)
-        ],
-        .onboarding: [
-            .init(base: .assessment, sub: .request),
-            .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
-            .init(base: .assessment, sub: .submit, isFrontEndVisible: false)
-        ],
-        .service: [
-            // .init(base: .onboarding),
-            .init(base: .follow),
-            .init(base: .demo)
-        ],
-        .resolution: [
-            .init(base: .review),
-            .init(base: .follow)
-        ],
-        .affiliate: [
-            .init(base: .food)
-        ],
-        .custom: [
-            .init(base: .message, sub: .send)
-        ],
-        .template: [
-            .init(base: .fetch)
-        ]
+    // private static let validMap: [MailerAPIRoute: Set<MailerAPIEndpoint>] = [
+    //     .invoice: [
+    //         .init(base: .issue),
+    //         .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
+    //         .init(base: .expired)
+    //     ],
+    //     .appointment: [
+    //         .init(base: .confirmation),
+    //         .init(base: .availability, sub: .request),
+    //         .init(base: .availability, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+    //     ],
+    //     .quote: [
+    //         .init(base: .issue),
+    //         .init(base: .follow),
+    //         .init(base: .agreement, sub: .request),
+    //         .init(base: .agreement, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+    //     ],
+    //     .lead: [
+    //         .init(base: .confirmation),
+    //         .init(base: .follow),
+    //         .init(base: .check),
+    //         .init(base: .wrong, sub: .phone)
+    //     ],
+    //     .onboarding: [
+    //         .init(base: .assessment, sub: .request),
+    //         .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
+    //         .init(base: .assessment, sub: .submit, isFrontEndVisible: false)
+    //     ],
+    //     .service: [
+    //         // .init(base: .onboarding),
+    //         .init(base: .follow),
+    //         .init(base: .demo)
+    //     ],
+    //     .resolution: [
+    //         .init(base: .review),
+    //         .init(base: .follow)
+    //     ],
+    //     .affiliate: [
+    //         .init(base: .food)
+    //     ],
+    //     .custom: [
+    //         .init(base: .message, sub: .send)
+    //     ],
+    //     .template: [
+    //         .init(base: .fetch)
+    //     ],
+    //     .support: [
+    //         .init(base: .check)
+    //     ],
+    // ]
+
+    private static let validMap: [MailerAPIMapObject] = [
+        .init(
+            .invoice,
+            [
+                .init(base: .issue),
+                .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
+                .init(base: .expired)
+            ],
+            .operations
+        ),
+
+        .init(
+            .appointment,
+            [
+                .init(base: .confirmation),
+                .init(base: .availability, sub: .request),
+                .init(base: .availability, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+            ],
+            .operations
+        ),
+
+        .init(
+            .quote,
+            [
+                .init(base: .issue),
+                .init(base: .follow),
+                .init(base: .agreement, sub: .request),
+                .init(base: .agreement, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+            ],
+            .sales
+        ),
+
+        .init(
+            .lead, 
+            [
+                .init(base: .confirmation),
+                .init(base: .follow),
+                .init(base: .check),
+                .init(base: .wrong, sub: .phone)
+            ],
+            .sales
+        ),
+
+        .init(
+            .onboarding,
+            [
+                .init(base: .assessment, sub: .request),
+                .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
+                .init(base: .assessment, sub: .submit, isFrontEndVisible: false)
+            ],
+            .sales
+        ),
+
+        .init(
+            .service,
+            [
+                // .init(base: .onboarding),
+                .init(base: .follow),
+                .init(base: .demo)
+            ],
+            .operations
+        ),
+        
+        .init(
+            .resolution,
+            [
+                .init(base: .review),
+                .init(base: .follow)
+            ],
+            .operations
+        ),
+            
+        .init(
+            .affiliate,
+            [
+                .init(base: .food)
+            ],
+            .operations
+        ),
+
+        .init(
+            .custom,
+            [
+                .init(base: .message, sub: .send)
+            ],
+            .other
+        ),
+
+
+        .init(
+            .template,
+            [
+                .init(base: .fetch)
+            ],
+            .other
+        ),
+
+        .init(
+            .support,
+            [
+                .init(base: .check)
+            ],
+            .operations
+        )
     ]
+
+    public let validIndex: [MailerAPIRoute: MailerAPIMapObject] = {
+        Dictionary(uniqueKeysWithValues: validMap.map { ($0.route, $0) })
+    }()
+
+    public func allowedEndpoints(for route: MailerAPIRoute) -> Set<MailerAPIEndpoint>? {
+        return validIndex[route]?.endpoints
+    }
+
+    public func stage(for route: MailerAPIRoute) -> MailerAPIEndpointStage? {
+        return validIndex[route]?.stage
+    }
 
     public init(
         route: MailerAPIRoute,
         endpoint: MailerAPIEndpoint
     ) throws {
         guard
-          let allowed = MailerAPIPath.validMap[route],
-          allowed.contains(endpoint)
+            // let allowed = MailerAPIPath.validMap[route],
+            // allowed.contains(endpoint)
+            let mapObject = self.validIndex[route],
+            mapObject.endpoints.contains(endpoint)
         else {
-          throw MailerAPIError.invalidEndpoint(route: route, endpoint: endpoint)
+            throw MailerAPIError.invalidEndpoint(route: route, endpoint: endpoint)
         }
         self.route = route
         self.endpoint = endpoint
