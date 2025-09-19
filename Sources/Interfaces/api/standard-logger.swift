@@ -50,9 +50,9 @@ public actor StandardLogger {
     public func log(_ message: String, level: LogLevel = .info) async {
         guard level >= minimumLevel else { return }
 
-        let ts   = Self.sharedFormatter.string(from: Date())
+        let ts   = Self.sharedFormatter.value.string(from: Date())
         let line = "[\(ts)] [\(level.label)] \(message)\n"
-        guard let data = line.data(using: .utf8) else {
+        guard let data = line.data(using: String.Encoding.utf8) else {
             assertionFailure("Logger: UTF-8 encoding failed")
             return
         }
@@ -74,11 +74,22 @@ public actor StandardLogger {
     public nonisolated func critical(_ message: String) { Task { await log(message, level: .critical) } }
     public nonisolated func debug(_ message: String) { Task { await log(message, level: .critical) } }
 
-    private static let sharedFormatter: ISO8601DateFormatter = {
+    // private static let sharedFormatter: ISO8601DateFormatter = {
+    //     let f = ISO8601DateFormatter()
+    //     f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+    //     return f
+    // }()
+
+    private static let sharedFormatter = FormatterBox {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return f
-    }()
+    }
+
+    private struct FormatterBox<T>: @unchecked Sendable {
+        let value: T
+        init(_ make: () -> T) { self.value = make() }
+    }
 
     private var fileHandle: FileHandle?
 
