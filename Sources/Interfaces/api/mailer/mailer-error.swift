@@ -11,140 +11,58 @@ public enum MailerAPIError: Error, LocalizedError {
     public var errorDescription: String? {
         switch self {
         case .missingEnv(let key):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.missingEnv",
-                    comment: "Environment variable missing (formatted with key)"
-                ),
-                key
-            )
+            return "Missing environment variable: \(key)."
 
         case .invalidURL(let url):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.invalidURL",
-                    comment: "Invalid URL (formatted with url)"
-                ),
-                url
-            )
+            return "Invalid URL: \(url)."
 
         case .network(let err):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.network",
-                    comment: "Network error (formatted with underlying error description)"
-                ),
-                err.localizedDescription
-            )
+            return "Network error: \(err.localizedDescription)"
 
         case .invalidEndpoint(let route, let endpoint):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.invalidEndpoint",
-                    comment: "Invalid endpoint for route (formatted with route, endpoint)"
-                ),
-                String(describing: route),
-                String(describing: endpoint)
-            )
+            return "Invalid endpoint for route: route=\(String(describing: route)), endpoint=\(String(describing: endpoint))."
 
         case .invalidFormat(let original):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.invalidFormat",
-                    comment: "Invalid format (formatted with original value)"
-                ),
-                original
-            )
+            return "Invalid format: \(original)."
 
         case .server(let status, let body):
-            return String(
-                format: NSLocalizedString(
-                    "MailerAPIError.server",
-                    comment: "Server returned HTTP error (formatted with status code and body)"
-                ),
-                status,
-                body
-            )
+            let trimmed = body.trimmingCharacters(in: .whitespacesAndNewlines)
+            let preview = trimmed.prefix(500)
+            return "Server error (\(status)). Body: \(preview)"
         }
     }
 
     public var failureReason: String? {
         switch self {
         case .missingEnv:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.missingEnv",
-                comment: "Reason for missing environment variable"
-            )
-
+            return "A required environment variable is not set."
         case .invalidURL:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.invalidURL",
-                comment: "Reason for invalid URL"
-            )
-
+            return "The URL string could not be parsed."
         case .network:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.network",
-                comment: "Reason for network error"
-            )
-
+            return "The request failed before a valid response was received."
         case .invalidEndpoint:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.invalidEndpoint",
-                comment: "Reason for invalid endpoint"
-            )
-
+            return "The selected endpoint is incompatible with the route."
         case .invalidFormat:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.invalidFormat",
-                comment: "Reason for invalid format"
-            )
-
+            return "One or more inputs have the wrong shape or encoding."
         case .server:
-            return NSLocalizedString(
-                "MailerAPIError.failureReason.server",
-                comment: "Reason for server error"
-            )
+            return "The server responded with a non-2xx HTTP status code."
         }
     }
 
     public var recoverySuggestion: String? {
         switch self {
         case .missingEnv:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.missingEnv",
-                comment: "Suggestion for missing env"
-            )
-
+            return "Define the variable in your environment or .env and restart."
         case .invalidURL:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.invalidURL",
-                comment: "Suggestion for invalid URL"
-            )
-
+            return "Check the domain, path, and query; avoid illegal characters."
         case .network:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.network",
-                comment: "Suggestion for network error"
-            )
-
+            return "Check connectivity and try again; inspect the underlying error."
         case .invalidEndpoint:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.invalidEndpoint",
-                comment: "Suggestion for invalid endpoint"
-            )
-
+            return "Pick a compatible route/endpoint pair."
         case .invalidFormat:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.invalidFormat",
-                comment: "Suggestion for invalid format"
-            )
-
+            return "Correct the input or payload format and retry."
         case .server:
-            return NSLocalizedString(
-                "MailerAPIError.recoverySuggestion.server",
-                comment: "Suggestion for server error"
-            )
+            return "Inspect the status and body; check server logs."
         }
     }
 }
