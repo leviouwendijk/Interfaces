@@ -299,8 +299,11 @@ public struct MailerAPIPath {
                 .init(base: .ok, method: .get),
                 .init(base: .ok, method: .post),
                 .init(base: .status, method: .get),
+                .init(base: .status, method: .post),
                 .init(base: .error, method: .get),
-                .init(base: .error, sub: .json, method: .get)
+                .init(base: .error, method: .post),
+                .init(base: .error, sub: .json, method: .get),
+                .init(base: .error, sub: .json, method: .post)
             ],
             .testing
         )
