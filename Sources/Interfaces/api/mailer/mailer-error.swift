@@ -1,4 +1,5 @@
 import Foundation
+import plate
 
 public enum MailerAPIError: Error, LocalizedError {
     case missingEnv(String)
@@ -17,7 +18,12 @@ public enum MailerAPIError: Error, LocalizedError {
             return "Invalid URL: \(url)."
 
         case .network(let err):
-            return "Network error: \(err.localizedDescription)"
+            var r = "Network Error: "
+            r.append(err.localizedDescription)
+            if let api = err as? APIError {
+                r.append("plate API error: \(api.description)")
+            }
+            return r
 
         case .invalidEndpoint(let route, let endpoint):
             return "Invalid endpoint for route: route=\(String(describing: route)), endpoint=\(String(describing: endpoint))."
