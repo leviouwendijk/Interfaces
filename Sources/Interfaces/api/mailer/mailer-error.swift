@@ -18,10 +18,12 @@ public enum MailerAPIError: Error, LocalizedError {
             return "Invalid URL: \(url)."
 
         case .network(let err):
-            var r = "Network Error: "
+            var r = "Network Error:\n\n"
             r.append(err.localizedDescription)
             if let api = err as? APIError {
+                r.append("\n\n")
                 r.append("plate API error: \(api.description)")
+                r.append("\n\n")
             }
             return r
 
