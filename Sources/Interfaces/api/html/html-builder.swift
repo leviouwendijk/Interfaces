@@ -89,14 +89,14 @@ public func td(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [H
 }
 
 public func table(
-  _ attrs: [String:String] = [:],
-  @HTMLBuilder _ content: () -> [HTMLNode]
+    _ attrs: [String:String] = [:],
+    @HTMLBuilder _ content: () -> [HTMLNode]
 ) -> HTMLNode {
-  HTMLNode(tag: "table", attributes: attrs, children: content())
+    HTMLNode(tag: "table", attributes: attrs, children: content())
 }
 
 public func th(_ text: String) -> HTMLNode {
-  HTMLNode(tag: "th", children: [HTMLNode(text: text)])
+    HTMLNode(tag: "th", children: [HTMLNode(text: text)])
 }
 
 public extension Dictionary where Key == String, Value == String {
@@ -104,3 +104,4 @@ public extension Dictionary where Key == String, Value == String {
     static func id(_ value: String)    -> [String: String] { ["id": value] }
     static func attr(_ key: String, _ value: String) -> [String: String] { [key: value] }
 }
+
