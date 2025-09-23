@@ -45,6 +45,7 @@ public struct MailerAPIClient {
         do {
             let path = try MailerAPIPath(route: payload.route, endpoint: payload.endpoint)
             let url  = try path.url(baseURL: baseURL)
+            let method: HTTPMethod = path.endpoint.method ?? .post
 
             // let jsonData = try JSONEncoder().encode(payload.content)
             // surface a re-caught error
@@ -61,7 +62,7 @@ public struct MailerAPIClient {
 
             let request = NetworkRequest(
                 url: url,
-                method: .post,
+                method: method,
                 auth: .apikey(value: apiKey),
                 headers: allHeaders,
                 body: jsonData,

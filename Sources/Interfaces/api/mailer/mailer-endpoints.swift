@@ -62,20 +62,23 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
 public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
     public let base: MailerAPIEndpointBase
     public let sub: MailerAPIEndpointSub?
+    public let method: HTTPMethod?
     public let isFrontEndVisible: Bool
 
     public init(
         base: MailerAPIEndpointBase,
         sub: MailerAPIEndpointSub? = nil,
+        method: HTTPMethod? = nil,
         isFrontEndVisible: Bool = true,
     ) {
         self.base = base
         self.sub = sub
+        self.method = method
         self.isFrontEndVisible = isFrontEndVisible
     }
 
     public init?(
-        rawValue: String
+        rawValue: String,
     ) {
         let parts = rawValue.split(separator: "/", maxSplits: 1).map(String.init)
         guard let b = MailerAPIEndpointBase(rawValue: parts[0]) else { return nil }
@@ -86,6 +89,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
             self.sub = nil
         }
 
+        self.method = nil
         self.isFrontEndVisible = true // default value
     }
 
@@ -134,6 +138,13 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case json
     }
 
+    public static func == (lhs: MailerAPIEndpoint, rhs: MailerAPIEndpoint) -> Bool {
+        lhs.base == rhs.base && lhs.sub == rhs.sub
+    }
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(base)
+        hasher.combine(sub?.rawValue ?? "")
+    }
 }
 
 public enum MailerAPIEndpointStage: String, CaseIterable, Sendable {
@@ -185,47 +196,47 @@ public struct MailerAPIPath {
     private static let validMap: [MailerAPIRoute: MailerAPIMapObject] = [
         .invoice: .init(
             [
-                .init(base: .issue),
-                .init(base: .issue, sub: .simple, isFrontEndVisible: false), // simple endpoint is still non-existent
-                .init(base: .expired)
+                .init(base: .issue, method: .post),
+                .init(base: .issue, sub: .simple, method: .post, isFrontEndVisible: false), // simple endpoint is still non-existent
+                .init(base: .expired, method: .post)
             ],
             .billing
         ),
 
         .appointment: .init(
             [
-                .init(base: .confirmation),
-                .init(base: .availability, sub: .request),
-                .init(base: .availability, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+                .init(base: .confirmation, method: .post),
+                .init(base: .availability, sub: .request, method: .post),
+                .init(base: .availability, sub: .decrypt, method: .post, isFrontEndVisible: false) // endpoint not for front end use
             ],
             .operations
         ),
 
         .quote: .init(
             [
-                .init(base: .issue),
-                .init(base: .follow),
-                .init(base: .agreement, sub: .request),
-                .init(base: .agreement, sub: .decrypt, isFrontEndVisible: false) // endpoint not for front end use
+                .init(base: .issue, method: .post),
+                .init(base: .follow, method: .post),
+                .init(base: .agreement, sub: .request, method: .post),
+                .init(base: .agreement, sub: .decrypt, method: .post, isFrontEndVisible: false) // endpoint not for front end use
             ],
             .sales
         ),
 
         .lead: .init(
             [
-                .init(base: .confirmation),
-                .init(base: .follow),
-                .init(base: .check),
-                .init(base: .wrong, sub: .phone)
+                .init(base: .confirmation, method: .post),
+                .init(base: .follow, method: .post),
+                .init(base: .check, method: .post),
+                .init(base: .wrong, sub: .phone, method: .post)
             ],
             .sales
         ),
 
         .onboarding: .init(
             [
-                .init(base: .assessment, sub: .request),
-                .init(base: .assessment, sub: .decrypt, isFrontEndVisible: false),
-                .init(base: .assessment, sub: .submit, isFrontEndVisible: false)
+                .init(base: .assessment, sub: .request, method: .post),
+                .init(base: .assessment, sub: .decrypt, method: .post, isFrontEndVisible: false),
+                .init(base: .assessment, sub: .submit, method: .post, isFrontEndVisible: false)
             ],
             .sales
         ),
@@ -233,30 +244,30 @@ public struct MailerAPIPath {
         .service: .init(
             [
                 // .init(base: .onboarding),
-                .init(base: .follow),
-                .init(base: .demo)
+                .init(base: .follow, method: .post),
+                .init(base: .demo, method: .post)
             ],
             .operations
         ),
         
         .resolution: .init(
             [
-                .init(base: .review),
-                .init(base: .follow)
+                .init(base: .review, method: .post),
+                .init(base: .follow, method: .post)
             ],
             .operations
         ),
             
         .affiliate: .init(
             [
-                .init(base: .food)
+                .init(base: .food, method: .post)
             ],
             .operations
         ),
 
         .custom: .init(
             [
-                .init(base: .message, sub: .send)
+                .init(base: .message, sub: .send, method: .post)
             ],
             .other
         ),
@@ -264,24 +275,24 @@ public struct MailerAPIPath {
 
         .template: .init(
             [
-                .init(base: .fetch)
+                .init(base: .fetch, method: .post)
             ],
             .other
         ),
 
         .support: .init(
             [
-                .init(base: .catch)
+                .init(base: .catch, method: .post)
             ],
             .operations
         ),
 
         .test: .init(
             [
-                .init(base: .ok),
-                .init(base: .status),
-                .init(base: .error),
-                .init(base: .error, sub: .json)
+                .init(base: .ok, method: .get),
+                .init(base: .status, method: .get),
+                .init(base: .error, method: .get),
+                .init(base: .error, sub: .json, method: .get)
             ],
             .testing
         )
