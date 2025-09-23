@@ -138,12 +138,19 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         case json
     }
 
-    public static func == (lhs: MailerAPIEndpoint, rhs: MailerAPIEndpoint) -> Bool {
-        lhs.base == rhs.base && lhs.sub == rhs.sub
+    public var id: String {
+        "\(rawValue)|\(method?.rawValue ?? "NONE")"
     }
+
+    // include method in equality/hash
+    public static func == (lhs: MailerAPIEndpoint, rhs: MailerAPIEndpoint) -> Bool {
+        lhs.base == rhs.base && lhs.sub == rhs.sub && lhs.method == rhs.method
+    }
+
     public func hash(into hasher: inout Hasher) {
         hasher.combine(base)
         hasher.combine(sub?.rawValue ?? "")
+        hasher.combine(method?.rawValue ?? "")
     }
 }
 
