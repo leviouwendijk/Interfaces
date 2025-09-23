@@ -22,7 +22,8 @@ public enum MailerAPIError: Error, LocalizedError {
             r.append(err.localizedDescription)
             if let api = err as? APIError {
                 r.append("\n\n")
-                r.append("plate API error: \(api.description)")
+                r.append("plate API error:\n\n")
+                r.append(api.description)
                 r.append("\n\n")
             }
             return r
