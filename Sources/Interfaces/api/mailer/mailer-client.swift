@@ -46,12 +46,18 @@ public struct MailerAPIClient {
             let path = try MailerAPIPath(route: payload.route, endpoint: payload.endpoint)
             let url  = try path.url(baseURL: baseURL)
 
-            // 3️⃣ JSON‐encode the payload’s content
-            let jsonData = try JSONEncoder().encode(payload.content)
+            // let jsonData = try JSONEncoder().encode(payload.content)
+            // surface a re-caught error
+            let jsonData: Data
+            do {
+                jsonData = try JSONEncoder().encode(payload.content)
+            } catch {
+                return completion(.failure(.invalidFormat(original: "JSON encode failed: \(error)")))
+            }
 
-            // 4️⃣ Prepare headers
             var allHeaders = headers
             allHeaders["Content-Type"] = "application/json"
+            allHeaders["Accept"]       = "application/json"
 
             let request = NetworkRequest(
                 url: url,
@@ -67,18 +73,25 @@ public struct MailerAPIClient {
                 case .success(let data):
                     completion(.success(data))
 
-                case .failure(let underlyingError):
-                    // Wrap any network‐level error
-                    completion(.failure(.network(underlyingError)))
+                case .failure(let underlying):
+                    let ns = underlying as NSError
+                    if let status = ns.userInfo["statusCode"] as? Int {
+                        let bodyText: String = {
+                            if let d = ns.userInfo["responseBody"] as? Data {
+                                return String(data: d, encoding: .utf8) ?? "<non-utf8 body>"
+                            }
+                            if let s = ns.userInfo["responseBody"] as? String { return s }
+                            return "<no-body>"
+                        }()
+                        completion(.failure(.server(status: status, body: bodyText)))
+                    } else {
+                        completion(.failure(.network(underlying)))
+                    }
                 }
             }
-
         } catch let apiError as MailerAPIError {
-            // Any of our custom errors
             completion(.failure(apiError))
-
         } catch {
-            // Fallback: wrap unknown errors as `.network`
             completion(.failure(.network(error)))
         }
     }
