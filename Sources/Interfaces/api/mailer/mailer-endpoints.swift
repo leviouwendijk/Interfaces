@@ -42,6 +42,7 @@ public enum MailerAPIRoute: String, CaseIterable, RawRepresentable, Sendable {
         .routeMap[self]?.rawValue ?? "relaties"
     }
 
+    @available(*, deprecated, message: "Invoke the endpoint.requiresAvailability boolean")
     public var endpointsRequiringAvailability: Set<MailerAPIEndpoint> {
         switch self {
             case .lead:       return [.confirmation, .check, .follow]
@@ -64,17 +65,20 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
     public let sub: MailerAPIEndpointSub?
     public let method: HTTPMethod?
     public let isFrontEndVisible: Bool
+    public let requiresAvailability: Bool
 
     public init(
         base: MailerAPIEndpointBase,
         sub: MailerAPIEndpointSub? = nil,
         method: HTTPMethod? = nil,
         isFrontEndVisible: Bool = true,
+        requiresAvailability: Bool = false
     ) {
         self.base = base
         self.sub = sub
         self.method = method
         self.isFrontEndVisible = isFrontEndVisible
+        self.requiresAvailability = requiresAvailability
     }
 
     public init?(
@@ -91,6 +95,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
 
         self.method = nil
         self.isFrontEndVisible = true // default value
+        self.requiresAvailability = false // activates values pane (UI)
     }
 
     public var rawValue: String {
@@ -231,9 +236,9 @@ public struct MailerAPIPath {
 
         .lead: .init(
             [
-                .init(base: .confirmation, method: .post),
-                .init(base: .follow, method: .post),
-                .init(base: .check, method: .post),
+                .init(base: .confirmation, method: .post, requiresAvailability: true),
+                .init(base: .follow, method: .post, requiresAvailability: true),
+                .init(base: .check, method: .post, requiresAvailability: true),
                 .init(base: .wrong, sub: .phone, method: .post)
             ],
             .sales
@@ -366,7 +371,12 @@ public struct MailerAPIPath {
     //     validMap[route]?.contains(endpoint) ?? false
     // }
 
+    // public var requiresAvailability: Bool {
+    //     route.endpointsRequiringAvailability.contains(endpoint)
+    // }
+
     public var requiresAvailability: Bool {
-        route.endpointsRequiringAvailability.contains(endpoint)
+        guard let map = Self.validMap[route] else { return false }
+        return map.endpoints.first(where: { $0 == endpoint })?.requiresAvailability ?? false
     }
 }
