@@ -26,6 +26,10 @@ public struct Shell: Sendable {
         public var teeToStdout: Bool = false
         public var teeToStderr: Bool = false
         public var redactions: [String] = []
+        // callbacks
+        public var onStdoutChunk: (@Sendable (Data) -> Void)? = nil
+        public var onStderrChunk: (@Sendable (Data) -> Void)? = nil
+
         public init() {}
     }
 
@@ -133,8 +137,17 @@ public struct Shell: Sendable {
         let start = Date()
 
         // Concurrently read stdout/stderr as they arrive (async, no locks).
-        async let outData: Data = readAll(from: stdoutPipe.fileHandleForReading, tee: options.teeToStdout ? .stdout : nil)
-        async let errData: Data = readAll(from: stderrPipe.fileHandleForReading, tee: options.teeToStderr ? .stderr : nil)
+        async let outData: Data = readAll(
+            from: stdoutPipe.fileHandleForReading,
+            tee: options.teeToStdout ? .stdout : nil,
+            onChunk: options.onStdoutChunk
+        )
+
+        async let errData: Data = readAll(
+            from: stderrPipe.fileHandleForReading,
+            tee: options.teeToStderr ? .stderr : nil,
+            onChunk: options.onStderrChunk
+        )
 
         // Await completion (or timeout / cancellation)
         try await waitForExit(process, timeout: options.timeout)
@@ -166,7 +179,11 @@ public struct Shell: Sendable {
         return result
     }
 
-    private func readAll(from fh: FileHandle, tee: Tee?) async -> Data {
+    private func readAll(
+        from fh: FileHandle,
+        tee: Tee?,
+        onChunk: (@Sendable (Data) -> Void)?
+    ) async -> Data {
         var buffer = Data()
         do {
             while let chunk = try fh.read(upToCount: 64 * 1024), !chunk.isEmpty {
@@ -176,11 +193,10 @@ public struct Shell: Sendable {
                 case .stderr?: FileHandle.standardError.write(chunk)
                 case nil: break
                 }
+                onChunk?(chunk)
                 if Task.isCancelled { break }
             }
-        } catch {
-            // ignore partial read errors if process terminates abruptly
-        }
+        } catch { /* ignore partial read errors */ }
         return buffer
     }
 
