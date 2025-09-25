@@ -25,7 +25,6 @@ public extension Shell {
             }
         }
 
-        /// Verbose, multi-line diagnostics block including command, args, options, env, and streams.
         public func pretty(maxPreviewBytes: Int = 4000) -> String {
             switch self {
             case .launchFailure, .timedOut:
