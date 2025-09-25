@@ -14,16 +14,24 @@ public actor LineStreamer {
 
     public func ingest(_ chunk: Data) {
         buffer.append(chunk)
-        while let nl = buffer.firstIndex(of: 0x0A) { 
-            let line = buffer[..<nl] 
-            let next = buffer.index(after: nl)
+        // Emit on either \n or \r
+        while let idx = buffer.firstIndex(where: { $0 == 0x0A || $0 == 0x0D }) { // 0x0A=\n, 0x0D=\r
+            let sep = buffer[idx]
+            let slice = buffer[..<idx]
+            let next = buffer.index(after: idx)
             buffer.removeSubrange(..<next)
-            if colorize, let s = String(data: line, encoding: .utf8) {
-                let painted = paint?(s) ?? s
-                handle.write(Data((painted + "\n").utf8))
+
+            if let s = String(data: slice, encoding: .utf8) {
+                let out = colorize ? (paint?(s) ?? s) : s
+                if sep == 0x0A {
+                    handle.write(Data((out + "\n").utf8))
+                } else {
+                    handle.write(Data((out + "\r").utf8))
+                }
             } else {
-                handle.write(line)
-                handle.write(Data([0x0A]))
+                // binary-ish chunk: just write raw + the separator
+                handle.write(slice)
+                handle.write(Data([sep]))
             }
         }
     }
