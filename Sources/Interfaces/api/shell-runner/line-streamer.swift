@@ -4,9 +4,9 @@ public actor LineStreamer {
     private var buffer = Data()
     private let handle: FileHandle
     private let colorize: Bool
-    private let paint: ((String) -> String)?
+    private let paint: (@Sendable (String) -> String)?
 
-    public init(handle: FileHandle, colorize: Bool, paint: ((String) -> String)? = nil) {
+    public init(handle: FileHandle, colorize: Bool, paint: (@Sendable (String) -> String)? = nil) {
         self.handle = handle
         self.colorize = colorize
         self.paint = paint
