@@ -166,6 +166,7 @@ public struct Shell: Sendable {
                 case nil: break
                 }
                 onChunk?(chunk)
+                await Task.yield()
                 if Task.isCancelled { break }
             }
         } catch { /* ignore partial read errors */ }
