@@ -1,74 +1,21 @@
 import Foundation
 
 public struct Shell: Sendable {
-    public enum Exec: Sendable {
-        case env, sh, bash, zsh
-        case path(String)
+    // public enum Error: Swift.Error, Sendable, LocalizedError {
+    //     case launchFailure(String)
+    //     case timedOut(after: TimeInterval, pid: pid_t)
+    //     case nonZeroExit(code: Int, stdoutPreview: String, stderrPreview: String, result: Result)
 
-        var launchPathAndArgsPrefix: (path: String, args: [String]) {
-            switch self {
-            case .env:   return ("/usr/bin/env", [])
-            case .sh:    return ("/bin/sh",   ["-lc"])
-            case .bash:  return ("/bin/bash", ["-lc"])
-            case .zsh:   return ("/bin/zsh",  ["-lc"])
-            case .path(let p): return (p, [])
-            }
-        }
-    }
-
-    public struct Options: Sendable {
-        public var cwd: URL? = nil
-        public var inheritEnvironment: Bool = true
-        public var env: [String:String] = [:]
-        public var stdin: Data? = nil
-        public var timeout: TimeInterval? = nil
-        public var expectedExitCodes: Set<Int> = [0]
-        public var teeToStdout: Bool = false
-        public var teeToStderr: Bool = false
-        public var redactions: [String] = []
-        // callbacks
-        public var onStdoutChunk: (@Sendable (Data) -> Void)? = nil
-        public var onStderrChunk: (@Sendable (Data) -> Void)? = nil
-
-        public init() {}
-    }
-
-    public enum ExitStatus: Sendable, Equatable {
-        case exited(Int)
-        case signaled(Int)
-    }
-
-    public struct Result: Sendable {
-        public let status: ExitStatus
-        public let pid: pid_t
-        public let launchedPath: String
-        public let argv: [String]
-        public let duration: TimeInterval
-        public let stdout: Data
-        public let stderr: Data
-
-        public var exitCode: Int? { if case .exited(let c) = status { return c } else { return nil } }
-        public func stdoutText(_ enc: String.Encoding = .utf8) -> String {
-            String(data: stdout, encoding: enc) ?? String(decoding: stdout, as: UTF8.self)
-        }
-        public func stderrText(_ enc: String.Encoding = .utf8) -> String {
-            String(data: stderr, encoding: enc) ?? String(decoding: stderr, as: UTF8.self)
-        }
-    }
-
-    public enum Error: Swift.Error, Sendable, LocalizedError {
-        case launchFailure(String)
-        case timedOut(after: TimeInterval, pid: pid_t)
-        case nonZeroExit(code: Int, stderrPreview: String, result: Result)
-
-        public var errorDescription: String? {
-            switch self {
-            case .launchFailure(let m):          return "Shell launch failure: \(m)"
-            case .timedOut(let t, let pid):      return "Shell timeout after \(t)s (pid \(pid))."
-            case .nonZeroExit(let c, let prev, _): return "Shell exited with code \(c). Stderr: \(prev)"
-            }
-        }
-    }
+    //     public var errorDescription: String? {
+    //         switch self {
+    //         case .launchFailure(let m): return "Shell launch failure: \(m)"
+    //         case .timedOut(let t, let pid): return "Shell timeout after \(t)s (pid \(pid))."
+    //         case .nonZeroExit(let c, let outPrev, let errPrev, _):
+    //             let body = errPrev.isEmpty ? outPrev : errPrev
+    //             return "Shell exited with code \(c). Output: \(body)"
+    //         }
+    //     }
+    // }
 
     public let exec: Exec
     public init(_ exec: Exec = .zsh) { self.exec = exec }
@@ -155,9 +102,51 @@ public struct Shell: Sendable {
             stderr: await errData
         )
 
+        // if case .exited(let code) = status, !options.expectedExitCodes.contains(code) {
+        //     let sErr = result.stderrText()
+        //     let sOut = result.stdoutText()
+        //     let previewSource = sErr.isEmpty ? sOut : sErr
+        //     let preview = String(previewSource.prefix(400))
+        //     throw Error.nonZeroExit(code: code, stderrPreview: preview, result: result)
+        // }
+
         if case .exited(let code) = status, !options.expectedExitCodes.contains(code) {
-            let preview = result.stderrText().prefix(400)
-            throw Error.nonZeroExit(code: code, stderrPreview: String(preview), result: result)
+            // Redact env values using the same redactions list
+            let redact = { (s: String) -> String in
+                options.redactions.reduce(s) { acc, needle in acc.replacingOccurrences(of: needle, with: "‹redacted›") }
+            }
+            var envShown: [String:String] = [:]
+            for (k, v) in env { envShown[k] = redact(v) }
+
+            let ctx = RunContext(
+                exec: self.exec,
+                launchPath: launchPath,
+                argv: argv,
+                cwd: options.cwd?.path,
+                inheritEnvironment: options.inheritEnvironment,
+                env: envShown,
+                timeout: options.timeout,
+                expectedExitCodes: options.expectedExitCodes,
+                teeToStdout: options.teeToStdout,
+                teeToStderr: options.teeToStderr,
+                redactions: options.redactions,
+                duration: duration,
+                pid: pid
+            )
+
+            let sOut = result.stdoutText()
+            let sErr = result.stderrText()
+
+            let outPrev = String(sOut.prefix(400))
+            let errPrev = String(sErr.prefix(400))
+
+            throw Error.nonZeroExit(
+                code: code,
+                stdoutPreview: outPrev,
+                stderrPreview: errPrev,
+                result: result,
+                context: ctx
+            )
         }
         return result
     }
