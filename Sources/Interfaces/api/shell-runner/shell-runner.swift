@@ -56,12 +56,12 @@ public struct Shell: Sendable {
         }
     }
 
-    public enum Error: Swift.Error, CustomStringConvertible, Sendable {
+    public enum Error: Swift.Error, Sendable, LocalizedError {
         case launchFailure(String)
         case timedOut(after: TimeInterval, pid: pid_t)
         case nonZeroExit(code: Int, stderrPreview: String, result: Result)
 
-        public var description: String {
+        public var errorDescription: String? {
             switch self {
             case .launchFailure(let m):          return "Shell launch failure: \(m)"
             case .timedOut(let t, let pid):      return "Shell timeout after \(t)s (pid \(pid))."
@@ -72,23 +72,6 @@ public struct Shell: Sendable {
 
     public let exec: Exec
     public init(_ exec: Exec = .zsh) { self.exec = exec }
-
-    // @discardableResult
-    // public func run(_ command: String, options: Options = .init()) throws -> Result {
-    //     let (path, prefix) = exec.launchPathAndArgsPrefix
-    //     guard case .path = exec else {
-    //         return try run(path, prefix + [command], options: options)
-    //     }
-    //     throw Error.launchFailure("String command requires a shell exec; got .path.")
-    // }
-
-    // @discardableResult
-    // public func run(_ program: String, _ args: [String] = [], options: Options = .init()) throws -> Result {
-    //     // Provide a blocking shim around async
-    //     try runBlocking {
-    //         try await runAsync(program, args, options: options)
-    //     }
-    // }
 
     @discardableResult
     public func run(
