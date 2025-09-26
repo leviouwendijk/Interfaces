@@ -85,15 +85,50 @@ public func runPTY(
         throw PTYError.spawnFailed(errno: spawnErr)
     }
 
-    // stream from PTY master
-    let fh = FileHandle(fileDescriptor: master, closeOnDealloc: true)
+    // ── stream from PTY master (non-blocking + poll for snappy chunks)
+    let masterFD = master
+
+    // 1) make PTY master non-blocking
+    let curFlags = fcntl(masterFD, F_GETFL, 0)
+    _ = fcntl(masterFD, F_SETFL, curFlags | O_NONBLOCK)
+
+    // 2) read loop
     var buffer = Data()
-    while true {
-        let chunk = try fh.read(upToCount: 64 * 1024) ?? Data()
-        if chunk.isEmpty { break }
-        buffer.append(chunk)
-        onChunk?(chunk)
-        _ = Task { await Task.yield() }            // nudge scheduler
+    var readBuf = [UInt8](repeating: 0, count: 8192)
+    var pfd = pollfd(fd: masterFD, events: Int16(POLLIN), revents: 0)
+
+    var done = false
+    while !done {
+        // 50 ms timeout to keep UI responsive
+        let r = poll(&pfd, 1, 50)
+        if r < 0 {
+            if errno == EINTR { continue }       // interrupted -> retry
+            break                                 // real error -> stop
+        }
+        if r == 0 { continue }                    // timeout, no data yet
+
+        if (pfd.revents & Int16(POLLIN)) != 0 {
+            // drain all available bytes
+            while true {
+                let n = read(masterFD, &readBuf, readBuf.count)
+                if n > 0 {
+                    let chunk = Data(bytes: readBuf, count: n)
+                    buffer.append(chunk)
+                    onChunk?(chunk)
+                    _ = Task { await Task.yield() }   // let printers run
+                } else if n == 0 {
+                    done = true                        // EOF
+                    break
+                } else {
+                    if errno == EAGAIN || errno == EWOULDBLOCK {
+                        break                          // no more bytes for now
+                    } else {
+                        done = true                    // other error
+                        break
+                    }
+                }
+            }
+        }
     }
 
     // wait + exit code
