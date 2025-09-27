@@ -3,7 +3,7 @@ import plate
 
 extension GitRepo {
     /// Make the local branch exactly equal to @{u}. Optionally drop untracked files.
-    @discardableResult
+    // @discardableResult
     public static func hardResetToUpstream(
         _ dir: URL,
         cleanUntracked: Bool = false,
