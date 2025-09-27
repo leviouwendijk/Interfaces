@@ -38,6 +38,7 @@ extension GitRepo {
 
         var block = """
         # auto-added ignorables:
+
         """
 
         for i in ignorable {
