@@ -21,9 +21,34 @@ extension GitRepo {
         return ("origin", branch)
     }
 
-    public static func fetchDefaultRemote(_ directoryURL: URL) async throws -> (remote: String, branch: String) {
+    public enum FetchPurpose { case stateCheck, lightweight }
+
+    public static func fetchDefaultRemote(
+        _ directoryURL: URL,
+        purpose: FetchPurpose = .stateCheck,
+        prune: Bool = true,
+        tags: Bool = true
+    ) async throws -> (remote: String, branch: String) {
         let (remote, branch) = try await defaultRemoteAndBranch(directoryURL)
-        _ = try await gitOut(directoryURL, ["fetch", "--depth", "1", remote, branch])
+        var args = ["fetch"]
+        if prune { args.append("--prune") }
+        if tags  { args.append("--tags") }
+
+        switch purpose {
+        case .stateCheck:
+            // Ensure accurate graph:
+            let isShallow = try await gitOut(directoryURL, ["rev-parse","--is-shallow-repository"])
+                .trimmingCharacters(in: .whitespacesAndNewlines) == "true"
+            if isShallow { args.append("--unshallow") }
+            // Optional speed-up without breaking history:
+            args.append(contentsOf: ["--filter=blob:none"])
+        case .lightweight:
+            // OK to be shallow if you are NOT doing ahead/behind math:
+            args.append(contentsOf: ["--depth","1"])
+        }
+
+        args.append(contentsOf: [remote, branch])
+        _ = try await gitOut(directoryURL, args)
         return (remote, branch)
     }
 }
