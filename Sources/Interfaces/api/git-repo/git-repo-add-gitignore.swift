@@ -36,16 +36,19 @@ extension GitRepo {
             try fh.write(contentsOf: Data("\n".utf8))
         }
 
-        var block = """
+        var block = ""
+        block.append("\n")
+
+        block.append("""
         # auto-added ignorables:
 
-        """
+        """)
 
         for i in ignorable {
             block.append(i)
             block.append("\n")
         }
-        block.append("\n")
+        // block.append("\n")
 
         try fh.write(contentsOf: Data(block.utf8))
         try fh.close()
