@@ -12,12 +12,12 @@ extension GitRepo {
         ignorable: [String] = ["compiled.pkl", "/compiled.pkl", "**/compiled.pkl"],
         to file: String = ".gitignore",
         in dir: URL
-    ) throws -> GitignoreUpdateResult {
+    ) throws -> (GitignoreUpdateResult, String) {
         let gi = dir.appendingPathComponent(file, isDirectory: false)
 
         var isDir: ObjCBool = false
         guard FileManager.default.fileExists(atPath: gi.path, isDirectory: &isDir), !isDir.boolValue else {
-            return .notFound
+            return (.notFound, gi.path)
         }
 
         let data = try Data(contentsOf: gi)
@@ -27,7 +27,7 @@ extension GitRepo {
 
         let wanted = Set(ignorable)
         let already = lines.contains { wanted.contains($0) }
-        if already { return .alreadyPresent }
+        if already { return (.alreadyPresent, "") }
 
         let fh = try FileHandle(forWritingTo: gi)
         try fh.seekToEnd()
@@ -50,6 +50,6 @@ extension GitRepo {
         try fh.write(contentsOf: Data(block.utf8))
         try fh.close()
 
-        return .appended
+        return (.appended, block)
     }
 }
