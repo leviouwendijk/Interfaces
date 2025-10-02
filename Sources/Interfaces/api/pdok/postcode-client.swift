@@ -1,6 +1,6 @@
 import Foundation
 
-public struct PostcodeClient {
+public struct PostcodeClient: Sendable {
     public var session: URLSession
     public let baseURL: URL
 
