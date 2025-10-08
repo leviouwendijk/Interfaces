@@ -81,7 +81,9 @@ public struct MailerCLIArguments {
         switch r {
         case .invoice:
             components.append("invoice \(stateVariables.invoiceId) --responder")
-            if e == .expired {
+            // if e == .expired {
+            // if e.base == .expired {
+            if .expired ~= e {
                 components.append("--expired")
             }
 
