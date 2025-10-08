@@ -109,7 +109,7 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         rawValue.viewableEndpointString()
     }
 
-    public enum MailerAPIEndpointBase: String, CaseIterable, Sendable {
+    public enum MailerAPIEndpointBase: String, CaseIterable, Sendable, Equatable {
         case confirmation
         case issue
         case follow
@@ -156,6 +156,37 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
         hasher.combine(base)
         hasher.combine(sub?.rawValue ?? "")
         hasher.combine(method?.rawValue ?? "")
+    }
+
+    // includes Base
+    @inlinable
+    public static func ~= (pattern: MailerAPIEndpointBase, value: MailerAPIEndpoint) -> Bool {
+        value.base == pattern
+    }
+
+    // includes Sub
+    @inlinable
+    public static func ~= (pattern: MailerAPIEndpointSub, value: MailerAPIEndpoint) -> Bool {
+        value.sub == pattern
+    }
+
+    // includes HTTPMethod
+    @inlinable
+    public static func ~= (pattern: HTTPMethod, value: MailerAPIEndpoint) -> Bool {
+        value.method == pattern
+    }
+
+    // includes (BASE, optional SUB, optional METHOD)
+    // pattern nil equates to a wildcard
+    @inlinable
+    public static func ~= (
+        pattern: (MailerAPIEndpointBase, MailerAPIEndpointSub?, HTTPMethod?),
+        value: MailerAPIEndpoint
+    ) -> Bool {
+        guard value.base == pattern.0 else { return false }
+        if let sub = pattern.1, value.sub != sub { return false }
+        if let method = pattern.2, value.method != method { return false }
+        return true
     }
 }
 
