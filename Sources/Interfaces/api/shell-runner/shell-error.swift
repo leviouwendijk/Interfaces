@@ -57,7 +57,8 @@ public extension Shell {
                     out += "  (empty)\n"
                 } else {
                     for key in ctx.env.keys.sorted() {
-                        out += "  \(key)=\(ctx.env[key]!)\n"
+                        // out += "  \(key)=\(ctx.env[key]!)\n"
+                        out += "  \(key)=<redacted>\n"
                     }
                 }
                 out += "\n— Stdout —\n"

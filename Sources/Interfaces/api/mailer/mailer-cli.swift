@@ -131,7 +131,7 @@ public func executeMailerCLI(_ arguments: String) throws {
     do {
         let home = Home.string()
         let process = Process()
-        process.executableURL = URL(fileURLWithPath: "/bin/zsh") // Use Zsh directly
+        process.executableURL = URL(fileURLWithPath: "/bin/zsh")
         process.arguments = ["-c", "source ~/dotfiles/.vars.zsh && \(home)/sbm-bin/mailer \(arguments)"]
         
         let outputPipe = Pipe()
