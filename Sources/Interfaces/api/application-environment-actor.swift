@@ -30,39 +30,101 @@ public enum ApplicationEnvironmentActorError: Error, LocalizedError {
 }
 
 public struct ApplicationEnvironmentLoader {
+    // public static func load(from filePath: String) throws -> [String: String] {
+    //     let url = URL(fileURLWithPath: filePath)
+    //     guard FileManager.default.fileExists(atPath: url.path) else {
+    //         throw ApplicationEnvironmentLoaderError.fileNotFound(filePath)
+    //     }
+        
+    //     let raw = try String(contentsOf: url, encoding: .utf8)
+    //     var result: [String: String] = [:]
+        
+    //     for line in raw.components(separatedBy: .newlines) {
+    //         let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
+    //         guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { continue }
+            
+    //         let parts = trimmed
+    //         .strippingExportPrefix()
+    //         .split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+
+    //         guard parts.count == 2 else {
+    //             throw ApplicationEnvironmentLoaderError.invalidConfigLine(trimmed)
+    //         }
+            
+    //         let key = parts[0]
+    //         .trimmingCharacters(in: .whitespaces)
+
+    //         let value = parts[1]
+    //         .trimmingCharacters(in: .whitespaces)
+    //         .replacingShellHomeVariable()
+    //         .strippingEnclosingQuotes()
+
+    //         result[key] = value
+    //     }
+        
+    //     return result
+    // }
+
     public static func load(from filePath: String) throws -> [String: String] {
         let url = URL(fileURLWithPath: filePath)
         guard FileManager.default.fileExists(atPath: url.path) else {
             throw ApplicationEnvironmentLoaderError.fileNotFound(filePath)
         }
-        
+
         let raw = try String(contentsOf: url, encoding: .utf8)
-        var result: [String: String] = [:]
-        
+        var rawMap: [String: String] = [:]
+
         for line in raw.components(separatedBy: .newlines) {
             let trimmed = line.trimmingCharacters(in: .whitespacesAndNewlines)
             guard !trimmed.isEmpty, !trimmed.hasPrefix("#") else { continue }
-            
+
             let parts = trimmed
-            .strippingExportPrefix()
-            .split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
+                .strippingExportPrefix()
+                .split(separator: "=", maxSplits: 1, omittingEmptySubsequences: false)
 
             guard parts.count == 2 else {
                 throw ApplicationEnvironmentLoaderError.invalidConfigLine(trimmed)
             }
-            
+
             let key = parts[0]
             .trimmingCharacters(in: .whitespaces)
 
-            let value = parts[1]
-            .trimmingCharacters(in: .whitespaces)
-            .replacingShellHomeVariable()
-            .strippingEnclosingQuotes()
+            let valueRaw = String(parts[1])
+                .trimmingCharacters(in: .whitespaces)
+                .replacingShellHomeVariable()
+                .strippingEnclosingQuotes()
 
-            result[key] = value
+            rawMap[key] = valueRaw
         }
-        
-        return result
+
+        var expanded: [String: String] = [:]
+        var matches: [String: String] = [:] 
+
+        let processEnv = CIEnv(ProcessInfo.processInfo.environment)
+        let fileEnv    = CIEnv(rawMap)
+
+        for _ in 0..<8 {
+            var changed = false
+            for (k, v) in rawMap {
+                // Merge precedence: expanded-so-far → raw file → process env
+                var merged = processEnv
+                merged.merge(expanded)
+                merged.merge(fileEnv.asDictionary())
+
+                let before = expanded[k]
+                let after  = EnvironmentExpander.expand(v, with: merged, matches: &matches, maxPasses: 8)
+                if before != after {
+                    expanded[k] = after
+                    changed = true
+                }
+            }
+            if !changed { break }
+        }
+
+        // for storing vars were referenced, stash `matches` somewhere.
+        // ApplicationEnvMatches.set(matches) // optional
+
+        return expanded
     }
     
     public static func set(to loadedDictionary: [String: String]) {
