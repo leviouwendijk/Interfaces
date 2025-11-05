@@ -148,6 +148,8 @@ public struct MailerAPIEndpoint: Hashable, Sendable, RawRepresentable {
 
         case json
 
+        case url
+
         // includes Sub
         @inlinable
         public static func ~= (pattern: MailerAPIEndpointSub, value: MailerAPIEndpoint) -> Bool {
@@ -246,7 +248,8 @@ public struct MailerAPIPath {
             [
                 .init(base: .issue, method: .post),
                 .init(base: .issue, sub: .simple, method: .post, isFrontEndVisible: false), // simple endpoint is still non-existent
-                .init(base: .expired, method: .post)
+                .init(base: .expired, method: .post),
+                .init(base: .issue, sub: .url, method: .post),
             ],
             .billing
         ),
@@ -319,7 +322,6 @@ public struct MailerAPIPath {
             ],
             .other
         ),
-
 
         .template: .init(
             [
