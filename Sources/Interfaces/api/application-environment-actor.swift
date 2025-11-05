@@ -1,14 +1,32 @@
 import Foundation
 import plate
 
-public enum ApplicationEnvironmentLoaderError: Error {
+public enum ApplicationEnvironmentLoaderError: Error, LocalizedError {
     case fileNotFound(String)
     case invalidConfigLine(String)
     case missingEnv(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .missingEnv(let key):
+            return "Missing environment variable for key \(key)"
+        case .invalidConfigLine(let line):
+            return "Invalid configuration line: \(line)"
+        case .fileNotFound(let path):
+            return "File not found at \(path)"
+        }
+    }
 }
 
-public enum ApplicationEnvironmentActorError: Error {
+public enum ApplicationEnvironmentActorError: Error, LocalizedError {
     case missingEnv(String)
+
+    public var errorDescription: String? {
+        switch self {
+        case .missingEnv(let key):
+            return "Missing environment variable for key \(key)"
+        }
+    }
 }
 
 public struct ApplicationEnvironmentLoader {

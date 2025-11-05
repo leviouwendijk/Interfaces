@@ -16,8 +16,8 @@ public struct NumbersParserInvoicePDF {
         pathOpener: PathOpener? = nil,
         openingMethod: PathOpenerOpeningMethod? = nil
     ) throws {
-        self.invoiceRaw      = try invoiceRaw      ?? NumbersParserEnvironment.require(.invoiceRaw)
-        self.invoiceOut      = try invoiceOut      ?? NumbersParserEnvironment.require(.invoice)
+        self.invoiceRaw      = try invoiceRaw ?? NumbersParserEnvironment.require(.invoiceRaw)
+        self.invoiceOut      = try invoiceOut ?? NumbersParserEnvironment.require(.invoice)
         self.openAfterwards  = openAfterwards
 
         let method           = openingMethod ?? PathOpenerOpeningMethod.inParentDirectory
