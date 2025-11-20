@@ -10,30 +10,35 @@ extension RSynchronizer {
         public var requiresSudo: Bool
 
         public var shell: String
+        public var shellOptions: [String]
 
         public init(
             target: Target,
             line: String,
             requiresSudo: Bool = false,
-            shell: String = "sh"
+            shell: String = "sh",
+            shellOptions: [String] = ["-lc"]
         ) {
             self.target = target
             self.line = line
             self.requiresSudo = requiresSudo
             self.shell = shell
+            self.shellOptions = shellOptions
         }
 
         public static func local(
             _ line: String,
             cwd: String? = nil,
             requiresSudo: Bool = false,
-            shell: String = "sh"
+            shell: String = "sh",
+            shellOptions: [String] = ["-lc"]
         ) -> Hook {
             .init(
                 target: .local(cwd: cwd),
                 line: line,
                 requiresSudo: requiresSudo,
-                shell: shell
+                shell: shell,
+                shellOptions: shellOptions
             )
         }
 
@@ -42,13 +47,15 @@ extension RSynchronizer {
             _ line: String,
             cwd: String? = nil,
             requiresSudo: Bool = false,
-            shell: String = "sh"
+            shell: String = "sh",
+            shellOptions: [String] = ["-lc"]
         ) -> Hook {
             .init(
                 target: .remote(host: host, cwd: cwd),
                 line: line,
                 requiresSudo: requiresSudo,
-                shell: shell
+                shell: shell,
+                shellOptions: shellOptions
             )
         }
     }
@@ -56,13 +63,11 @@ extension RSynchronizer {
 
 extension RSynchronizer {
     public static func hookCommand(_ hook: Hook) -> Command {
-        func makeShellCommand(shell: String, line: String) -> [String] {
-            [
-                "/usr/bin/env",
-                shell,
-                "-lc",
-                line
-            ]
+        func makeShellCommand(shell: String, options: [String], line: String) -> [String] {
+            var args: [String] = ["/usr/bin/env", shell]
+            args.append(contentsOf: options)
+            args.append(line)
+            return args
         }
 
         switch hook.target {
@@ -73,7 +78,11 @@ extension RSynchronizer {
                 localLine = "cd \(cwd) && \(localLine)"
             }
 
-            return Command(arguments: makeShellCommand(shell: hook.shell, line: localLine))
+            return Command(arguments: makeShellCommand(
+                shell: hook.shell,
+                options: hook.shellOptions,
+                line: localLine
+            ))
 
         case let .remote(host, cwd):
             var remoteLine = hook.requiresSudo ? "sudo \(hook.line)" : hook.line
@@ -82,17 +91,12 @@ extension RSynchronizer {
                 remoteLine = "cd \(cwd) && \(remoteLine)"
             }
 
-            // ssh host "/usr/bin/env <shell> -lc '<remoteLine>'"
-            var args: [String] = [
-                "ssh",
-                host
-            ]
-            args.append(contentsOf: [
-                "/usr/bin/env",
-                hook.shell,
-                "-lc",
-                remoteLine
-            ])
+            var args: [String] = ["ssh", host]
+            args.append(contentsOf: makeShellCommand(
+                shell: hook.shell,
+                options: hook.shellOptions,
+                line: remoteLine
+            ))
 
             return Command(arguments: args)
         }
