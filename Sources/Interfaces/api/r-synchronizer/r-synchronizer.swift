@@ -6,18 +6,18 @@ public enum RSynchronizer {
         public let name: String
         public let batches: [Batch]
         public let deletesExtraneous: Bool
-        public let postSync: [Hook]
+        public let hooks: [Hook]
 
         public init(
             name: String,
             deletesExtraneous: Bool = false,
             batches: [Batch],
-            postSync: [Hook] = []
+            hooks: [Hook] = []
         ) {
             self.name = name
             self.batches = batches
             self.deletesExtraneous = deletesExtraneous
-            self.postSync = postSync
+            self.hooks = hooks
         }
     }
 
@@ -221,10 +221,10 @@ public enum RSynchronizer {
         // -----------------------------
         // Post-sync hooks (post-deploy)
         // -----------------------------
-        if !route.postSync.isEmpty {
-            let totalHooks = route.postSync.count
+        if !route.hooks.isEmpty {
+            let totalHooks = route.hooks.count
 
-            for (i, hook) in route.postSync.enumerated() {
+            for (i, hook) in route.hooks.enumerated() {
                 await options.onEvent?(.hookStarted(hook, index: i, total: totalHooks))
 
                 let cmd = hookCommand(hook)
