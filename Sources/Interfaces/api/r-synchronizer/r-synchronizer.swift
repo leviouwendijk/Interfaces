@@ -4,20 +4,32 @@ import plate
 public enum RSynchronizer {
     public struct Route: Sendable {
         public let name: String
+        public let aliases: [String]
         public let batches: [Batch]
         public let deletesExtraneous: Bool
         public let hooks: [Hook]
 
         public init(
             name: String,
+            aliases: [String] = [],
             deletesExtraneous: Bool = false,
             batches: [Batch],
             hooks: [Hook] = []
         ) {
             self.name = name
+            self.aliases = aliases
             self.batches = batches
             self.deletesExtraneous = deletesExtraneous
             self.hooks = hooks
+        }
+
+        public func matches(_ candidate: String) -> Bool {
+            if candidate == name { return true }
+            return aliases.contains(candidate)
+        }
+
+        public var allNames: [String] {
+            [name] + aliases
         }
     }
 
