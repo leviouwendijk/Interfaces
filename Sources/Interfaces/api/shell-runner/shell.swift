@@ -1,22 +1,6 @@
 import Foundation
 
 public struct Shell: Sendable {
-    // public enum Error: Swift.Error, Sendable, LocalizedError {
-    //     case launchFailure(String)
-    //     case timedOut(after: TimeInterval, pid: pid_t)
-    //     case nonZeroExit(code: Int, stdoutPreview: String, stderrPreview: String, result: Result)
-
-    //     public var errorDescription: String? {
-    //         switch self {
-    //         case .launchFailure(let m): return "Shell launch failure: \(m)"
-    //         case .timedOut(let t, let pid): return "Shell timeout after \(t)s (pid \(pid))."
-    //         case .nonZeroExit(let c, let outPrev, let errPrev, _):
-    //             let body = errPrev.isEmpty ? outPrev : errPrev
-    //             return "Shell exited with code \(c). Output: \(body)"
-    //         }
-    //     }
-    // }
-
     public let exec: Exec
     public init(_ exec: Exec = .zsh) { self.exec = exec }
 
@@ -234,24 +218,3 @@ private extension Process {
         #endif
     }
 }
-
-// @inline(__always)
-// private func runBlocking<T>(
-//     _ body: @escaping () async throws -> T
-// ) throws -> T {
-//     let sema = DispatchSemaphore(value: 0)
-//     var result: Result<T, Error>!
-
-//     Task.detached(priority: .userInitiated) {
-//         do {
-//             let value = try await body()
-//             result = .success(value)
-//         } catch {
-//             result = .failure(error)
-//         }
-//         sema.signal()
-//     }
-
-//     sema.wait()
-//     return try result.get()
-// }

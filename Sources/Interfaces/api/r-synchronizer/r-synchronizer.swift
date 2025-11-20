@@ -76,29 +76,6 @@ public enum RSynchronizer {
         public let commands: [Command]
     }
 
-    public struct ExecutionOptions: Sendable {
-        public var dryRun: Bool
-        public var additionalRsyncFlags: [String]
-        public var shell: Shell
-        public var cwd: URL?
-        public var teeOutput: Bool
-
-        public init(
-            dryRun: Bool = false,
-            additionalRsyncFlags: [String] = [],
-            // Use .path("/usr/bin/env") so argv is preserved and no shell-quoting happens by default.
-            shell: Shell = .init(.path("/usr/bin/env")),
-            cwd: URL? = nil,
-            teeOutput: Bool = true
-        ) {
-            self.dryRun = dryRun
-            self.additionalRsyncFlags = additionalRsyncFlags
-            self.shell = shell
-            self.cwd = cwd
-            self.teeOutput = teeOutput
-        }
-    }
-
     public static func plan(
         _ route: Route,
         includeDeleteOverride: Bool? = nil
@@ -146,18 +123,57 @@ public enum RSynchronizer {
         return Plan(route: route, commands: commands)
     }
 
+    public enum OutputPolicy: Sendable {
+        case verbose               // tee live
+        case quiet                 // never tee, never print
+        case quietUntilFailure     // never tee, print only on failure (binary decides)
+    }
+
+    public enum Event: Sendable {
+        case commandStarted(command: Command, index: Int, total: Int)
+        case commandFinished(command: Command, result: Shell.Result)
+    }
+
+    public struct ExecutionOptions: Sendable {
+        public var dryRun: Bool
+        public var additionalRsyncFlags: [String]
+        public var shell: Shell
+        public var cwd: URL?
+        public var output: OutputPolicy
+        public var onEvent: (@Sendable (Event) -> Void)?
+
+        public init(
+            dryRun: Bool = false,
+            additionalRsyncFlags: [String] = [],
+            shell: Shell = .init(.path("/usr/bin/env")),
+            cwd: URL? = nil,
+            output: OutputPolicy = .verbose,
+            onEvent: (@Sendable (Event) -> Void)? = nil
+        ) {
+            self.dryRun = dryRun
+            self.additionalRsyncFlags = additionalRsyncFlags
+            self.shell = shell
+            self.cwd = cwd
+            self.output = output
+            self.onEvent = onEvent
+        }
+    }
+
     @discardableResult
     public static func execute(
         _ route: Route,
         options: ExecutionOptions = .init(),
         includeDeleteOverride: Bool? = nil
     ) async throws -> [Shell.Result] {
+
         let plan = plan(route, includeDeleteOverride: includeDeleteOverride)
         var results: [Shell.Result] = []
+        let total = plan.commands.count
 
-        for cmd in plan.commands {
+        for (i, cmd) in plan.commands.enumerated() {
+            options.onEvent?(.commandStarted(command: cmd, index: i, total: total))
+
             var argv = cmd.arguments
-
             if options.dryRun {
                 argv.insert("--dry-run", at: 1)
             }
@@ -165,18 +181,17 @@ public enum RSynchronizer {
                 argv.insert(contentsOf: options.additionalRsyncFlags, at: 1)
             }
 
+            let tee = (options.output == .verbose)
+
             var shOpt = Shell.Options()
             shOpt.cwd = options.cwd
-            shOpt.teeToStdout = options.teeOutput
-            shOpt.teeToStderr = options.teeOutput
+            shOpt.teeToStdout = tee
+            shOpt.teeToStderr = tee
 
-            let res = try await options.shell.run(
-                "/usr/bin/env",
-                argv,
-                options: shOpt
-            )
-
+            let res = try await options.shell.run("/usr/bin/env", argv, options: shOpt)
             results.append(res)
+
+            options.onEvent?(.commandFinished(command: cmd, result: res))
 
             if case .exited(let code) = res.status, code != 0 {
                 throw RSynchronizerError.commandFailed(
