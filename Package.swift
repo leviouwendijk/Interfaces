@@ -16,7 +16,7 @@ let package = Package(
     ],
     dependencies: [
         // testing
-        .package(url: "https://github.com/swiftlang/swift-testing.git", from: "6.2.0"),
+        // .package(url: "https://github.com/swiftlang/swift-testing.git", from: "6.2.0"),
         .package(
             url: "https://github.com/leviouwendijk/plate.git",
             branch: "master"
@@ -46,7 +46,7 @@ let package = Package(
             name: "InterfacesTests",
             dependencies: [
                 // testing
-                .product(name: "Testing", package: "swift-testing"),
+                // .product(name: "Testing", package: "swift-testing"),
                 "Interfaces",
                 .product(name: "plate", package: "plate"),
                 .product(name: "Structures", package: "Structures"),
