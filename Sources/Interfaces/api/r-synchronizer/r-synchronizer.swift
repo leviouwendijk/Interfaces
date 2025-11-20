@@ -140,7 +140,8 @@ public enum RSynchronizer {
         public var shell: Shell
         public var cwd: URL?
         public var output: OutputPolicy
-        public var onEvent: (@Sendable (Event) -> Void)?
+        // public var onEvent: (@Sendable (Event) -> Void)?
+        public var onEvent: (@Sendable (Event) async -> Void)?
 
         public init(
             dryRun: Bool = false,
@@ -148,7 +149,8 @@ public enum RSynchronizer {
             shell: Shell = .init(.path("/usr/bin/env")),
             cwd: URL? = nil,
             output: OutputPolicy = .verbose,
-            onEvent: (@Sendable (Event) -> Void)? = nil
+            // onEvent: (@Sendable (Event) -> Void)? = nil
+            onEvent: (@Sendable (Event) async -> Void)? = nil
         ) {
             self.dryRun = dryRun
             self.additionalRsyncFlags = additionalRsyncFlags
@@ -171,7 +173,7 @@ public enum RSynchronizer {
         let total = plan.commands.count
 
         for (i, cmd) in plan.commands.enumerated() {
-            options.onEvent?(.commandStarted(command: cmd, index: i, total: total))
+            await options.onEvent?(.commandStarted(command: cmd, index: i, total: total))
 
             var argv = cmd.arguments
             if options.dryRun {
@@ -191,7 +193,7 @@ public enum RSynchronizer {
             let res = try await options.shell.run("/usr/bin/env", argv, options: shOpt)
             results.append(res)
 
-            options.onEvent?(.commandFinished(command: cmd, result: res))
+            await options.onEvent?(.commandFinished(command: cmd, result: res))
 
             if case .exited(let code) = res.status, code != 0 {
                 throw RSynchronizerError.commandFailed(
