@@ -1,5 +1,5 @@
 {
-  "originHash" : "cda000f9fd2289900883bf9d8cab9b3f7a523c8291286c5067fa93827ed97274",
+  "originHash" : "3b1684687087d4b5396328173d00a02f484b212a8d31141912e82bdaef6cec03",
   "pins" : [
     {
       "identity" : "extensions",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/leviouwendijk/Extensions.git",
       "state" : {
         "branch" : "master",
-        "revision" : "3310d463b1bc509cccd8e75f0acc221e153f5dff"
+        "revision" : "2670525e08c06638511e3b6a58093efbcc0d78f3"
       }
     },
     {
@@ -16,7 +16,7 @@
       "location" : "https://github.com/leviouwendijk/plate.git",
       "state" : {
         "branch" : "master",
-        "revision" : "7d448e21cb21805aaac066c1c3bfde8ac866179d"
+        "revision" : "b9d863868e33d522b4fc44a5d9647ac61413b14c"
       }
     },
     {
@@ -25,7 +25,7 @@
       "location" : "https://github.com/leviouwendijk/Structures.git",
       "state" : {
         "branch" : "master",
-        "revision" : "ee6c6836b897caff5a2f9111351976264a043076"
+        "revision" : "1e32ad705aa4c84c2c680e61e8de2b18565470e6"
       }
     },
     {
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/swiftlang/swift-testing.git",
       "state" : {
-        "revision" : "3fdabe5392108d874abae1c1e58e1328ab46f681",
-        "version" : "6.2.0"
+        "revision" : "c9d57c83568b06da229ed24339a6228e8e3b438b",
+        "version" : "6.2.1"
       }
     }
   ],

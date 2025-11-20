@@ -64,10 +64,19 @@ public enum RSynchronizer {
             arguments.joined(separator: " ")
         }
 
-        public func prettyMultiline(indent: String = "    ") -> String {
-            arguments
-                .map { indent + $0 }
-                .joined(separator: " \\\n")
+        public func prettyMultiline(
+            indentation: IndentationOptions = .init(
+                overrides: [
+                    .init([1: .init(skip: true)])
+                ]
+            ),
+        ) -> String {
+            let newline_separated = arguments
+                // .map { $0.indent() }
+                // .joined(separator: " \\\n")
+                .map { "\($0) \\" }
+
+            return newline_separated.indent(options: indentation)
         }
     }
 
