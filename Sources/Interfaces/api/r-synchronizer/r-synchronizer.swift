@@ -6,15 +6,18 @@ public enum RSynchronizer {
         public let name: String
         public let batches: [Batch]
         public let deletesExtraneous: Bool
+        public let postSync: [Hook]
 
         public init(
             name: String,
             deletesExtraneous: Bool = false,
-            batches: [Batch]
+            batches: [Batch],
+            postSync: [Hook] = []
         ) {
             self.name = name
             self.batches = batches
             self.deletesExtraneous = deletesExtraneous
+            self.postSync = postSync
         }
     }
 
@@ -141,6 +144,9 @@ public enum RSynchronizer {
     public enum Event: Sendable {
         case commandStarted(command: Command, index: Int, total: Int)
         case commandFinished(command: Command, result: Shell.Result)
+
+        case hookStarted(Hook, index: Int, total: Int)
+        case hookFinished(Hook, result: Shell.Result)
     }
 
     public struct ExecutionOptions: Sendable {
@@ -209,6 +215,37 @@ public enum RSynchronizer {
                     commandLine: cmd.prettyLine,
                     exitCode: code
                 )
+            }
+        }
+
+        // -----------------------------
+        // Post-sync hooks (post-deploy)
+        // -----------------------------
+        if !route.postSync.isEmpty {
+            let totalHooks = route.postSync.count
+
+            for (i, hook) in route.postSync.enumerated() {
+                await options.onEvent?(.hookStarted(hook, index: i, total: totalHooks))
+
+                let cmd = hookCommand(hook)
+
+                let tee = (options.output == .verbose)
+                var shOpt = Shell.Options()
+                shOpt.cwd = options.cwd
+                shOpt.teeToStdout = tee
+                shOpt.teeToStderr = tee
+
+                let res = try await options.shell.run("/usr/bin/env", cmd.arguments, options: shOpt)
+                results.append(res)
+
+                await options.onEvent?(.hookFinished(hook, result: res))
+
+                if case .exited(let code) = res.status, code != 0 {
+                    throw RSynchronizerError.hookFailed(
+                        hookLine: hook.line,
+                        exitCode: code
+                    )
+                }
             }
         }
 
