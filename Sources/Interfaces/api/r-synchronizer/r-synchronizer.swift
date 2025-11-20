@@ -67,7 +67,7 @@ public enum RSynchronizer {
         public func prettyMultiline(
             indentation: IndentationOptions = .init(
                 overrides: [
-                    .init([1: .init(skip: true)])
+                    .init([0: .init(skip: true)])
                 ]
             ),
         ) -> String {
