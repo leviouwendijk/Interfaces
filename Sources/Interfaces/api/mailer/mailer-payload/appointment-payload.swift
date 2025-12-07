@@ -1,5 +1,6 @@
 import Foundation
 import Structures
+import plate
 
 public struct AppointmentPayload: MailerAPIPayload {
     public typealias Variables = MailerAPIAppointmentVariables
@@ -28,9 +29,12 @@ public struct AppointmentPayload: MailerAPIPayload {
         var attach = MailerAPIEmailAttachmentsArray(attachments: attachments)
 
         for (idx, appt) in variables.appointments.enumerated() {
-            guard let start = Calendar.current.date(from: appt.dateComponents) else {
-                throw MailerAPIAppointmentError.cannotConstructDateFromComponents
-            }
+            // guard let start = Calendar.current.date(from: appt.dateComponents) else {
+            //     throw MailerAPIAppointmentError.cannotConstructDateFromComponents
+            // }
+            let start = try appt.dateComponents.date(
+                .amsterdam
+            )
             let end = start.addingTimeInterval(2 * 60 * 60)
 
             let icsText = ICSBuilder.event(
