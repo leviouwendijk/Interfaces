@@ -1,5 +1,6 @@
 import Foundation
-import Structures
+import Primitives
+// import Structures
 
 public enum SwiftPackageDumpReaderError: Error, LocalizedError, Sendable {
     case notJSON(String)
@@ -25,7 +26,7 @@ public enum SwiftPackageDumpReaderError: Error, LocalizedError, Sendable {
 
 public struct SwiftPackageDumpReader: Sendable {
     public let blob: SwiftPackageDumpBlob
-    public let root: Structures.JSONValue
+    public let root: JSONValue
 
     public init(blob: SwiftPackageDumpBlob) throws {
         let decoder = JSONDecoder()

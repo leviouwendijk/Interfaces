@@ -1,5 +1,5 @@
 {
-  "originHash" : "4aa35e5a01dd01551fbfdcc2d37e9855b7a93e3e29e8fc5d3022b171f3cfb30f",
+  "originHash" : "b508b97fef14f194b3dbbadf3598a0346e5fded7568b1e4db64305d8fed3b54a",
   "pins" : [
     {
       "identity" : "extensions",
@@ -7,7 +7,7 @@
       "location" : "https://github.com/leviouwendijk/Extensions.git",
       "state" : {
         "branch" : "master",
-        "revision" : "2670525e08c06638511e3b6a58093efbcc0d78f3"
+        "revision" : "d9ade627ba8979d21da2f3dec01ab7d305e7642b"
       }
     },
     {
@@ -16,7 +16,16 @@
       "location" : "https://github.com/leviouwendijk/plate.git",
       "state" : {
         "branch" : "master",
-        "revision" : "e576a09f06c14a82958acf012cd7cf039a8a110b"
+        "revision" : "9ae5f434b645b94adca307881598c635265527c3"
+      }
+    },
+    {
+      "identity" : "primitives",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Primitives.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "95d098547aa8c78b78613753163a1fa8bbbb6a1e"
       }
     },
     {
@@ -25,7 +34,7 @@
       "location" : "https://github.com/leviouwendijk/Structures.git",
       "state" : {
         "branch" : "master",
-        "revision" : "1e32ad705aa4c84c2c680e61e8de2b18565470e6"
+        "revision" : "ec4de8456bbdbd441a0ed02ddb463a31d9b1a38f"
       }
     }
   ],

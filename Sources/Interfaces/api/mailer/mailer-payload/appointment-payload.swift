@@ -48,16 +48,30 @@ public struct AppointmentPayload: MailerAPIPayload {
 
                 Je afspraak voor \(variables.dog) is bevestigd.
 
+                Duur: 60 - 120 min.
+
                 Houd alsjeblieft rekening met mogelijke uitloop.
-
-                Aanradingen ter voorbereiding:
-                1. Geef je hond geen eten direct vooraf de sessie. Dit kan namelijk de mogelijke benutting van voedseldrijf inefficiënt maken.
-
-                2. Zorg dat je eventuele beloningen (voer en spel-objecten) binnen handbereik hebt.
 
                 Hartelijke groet,
                 Het Hondenmeesters Team
                 """,
+                // description: """
+                // Beste \(variables.name),
+
+                // Je afspraak voor \(variables.dog) is bevestigd.
+
+                // Duur: 60 - 120 min.
+
+                // Houd alsjeblieft rekening met mogelijke uitloop.
+
+                // Aanradingen ter voorbereiding:
+                // 1. Geef je hond geen eten direct vooraf de sessie. Dit kan namelijk de mogelijke benutting van voedseldrijf inefficiënt maken.
+
+                // 2. Zorg dat je eventuele beloningen (voer en spel-objecten) binnen handbereik hebt.
+
+                // Hartelijke groet,
+                // Het Hondenmeesters Team
+                // """,
                 location:    "\(appt.street) \(appt.number), \(appt.area), \(appt.location)",
                 prodId:      "//Hondenmeesters//Event//EN"
             )

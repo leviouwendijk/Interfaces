@@ -29,6 +29,11 @@ let package = Package(
             url: "https://github.com/leviouwendijk/Extensions.git",
             branch: "master"
         ),
+
+        .package(
+            url: "https://github.com/leviouwendijk/Primitives.git",
+            branch: "master"
+        ),
     ],
     targets: [
         .target(
@@ -37,6 +42,7 @@ let package = Package(
                 .product(name: "plate", package: "plate"),
                 .product(name: "Structures", package: "Structures"),
                 .product(name: "Extensions", package: "Extensions"),
+                .product(name: "Primitives", package: "Primitives"),
             ],
             resources: [
                 .process("Resources")
@@ -51,6 +57,7 @@ let package = Package(
                 .product(name: "plate", package: "plate"),
                 .product(name: "Structures", package: "Structures"),
                 .product(name: "Extensions", package: "Extensions"),
+                .product(name: "Primitives", package: "Primitives"),
             ]
         ),
     ]
