@@ -1,6 +1,6 @@
 import Foundation
 import Primitives
-// import Structures
+// import __Structures
 
 public enum SwiftPackageDumpReaderError: Error, LocalizedError, Sendable {
     case notJSON(String)
