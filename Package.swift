@@ -34,6 +34,10 @@ let package = Package(
             url: "https://github.com/leviouwendijk/Primitives.git",
             branch: "master"
         ),
+        .package(
+            url: "https://github.com/leviouwendijk/Indentation.git",
+            branch: "master"
+        ),
     ],
     targets: [
         .target(
@@ -43,6 +47,7 @@ let package = Package(
                 // .product(name: "Structures", package: "Structures"),
                 // .product(name: "Extensions", package: "Extensions"),
                 .product(name: "Primitives", package: "Primitives"),
+                .product(name: "Indentation", package: "Indentation"),
             ],
             resources: [
                 .process("Resources")
