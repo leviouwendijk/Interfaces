@@ -1,16 +1,16 @@
 import Foundation
 
-public final class HTMLNode {
+public final class interfaces_HTMLNode {
     public let tag: String?
     public let text: String?
     public let attributes: [String: String]
-    public let children: [HTMLNode]
+    public let children: [interfaces_HTMLNode]
 
     public init(
         tag: String? = nil,
         text: String? = nil,
         attributes: [String: String] = [:],
-        children: [HTMLNode] = []
+        children: [interfaces_HTMLNode] = []
     ) {
         self.tag = tag
         self.text = text

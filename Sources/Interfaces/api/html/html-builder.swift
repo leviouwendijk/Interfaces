@@ -1,102 +1,102 @@
 import Foundation
 
 @resultBuilder
-public struct HTMLBuilder {
-    public static func buildBlock(_ nodes: HTMLNode...) -> [HTMLNode] {
+public struct interfaces_HTMLBuilder {
+    public static func buildBlock(_ nodes: interfaces_HTMLNode...) -> [interfaces_HTMLNode] {
         nodes
     }
 
-    public static func buildBlock(_ nodes: [HTMLNode]) -> [HTMLNode] {
+    public static func buildBlock(_ nodes: [interfaces_HTMLNode]) -> [interfaces_HTMLNode] {
         nodes
     }
 
-    public static func buildOptional(_ nodes: [HTMLNode]?) -> [HTMLNode] {
+    public static func buildOptional(_ nodes: [interfaces_HTMLNode]?) -> [interfaces_HTMLNode] {
         nodes ?? []
     }
 
-    public static func buildEither(first: [HTMLNode]) -> [HTMLNode] {
+    public static func buildEither(first: [interfaces_HTMLNode]) -> [interfaces_HTMLNode] {
         first
     }
 
-    public static func buildEither(second: [HTMLNode]) -> [HTMLNode] {
+    public static func buildEither(second: [interfaces_HTMLNode]) -> [interfaces_HTMLNode] {
         second
     }
 
-    public static func buildArray(_ components: [[HTMLNode]]) -> [HTMLNode] {
+    public static func buildArray(_ components: [[interfaces_HTMLNode]]) -> [interfaces_HTMLNode] {
         components.flatMap { $0 }
     }
 
-    public static func buildExpression(_ node: HTMLNode) -> [HTMLNode] {
+    public static func buildExpression(_ node: interfaces_HTMLNode) -> [interfaces_HTMLNode] {
         [node]
     }
 
-    public static func buildExpression(_ text: String) -> [HTMLNode] {
-        [HTMLNode(text: text)]
+    public static func buildExpression(_ text: String) -> [interfaces_HTMLNode] {
+        [interfaces_HTMLNode(text: text)]
     }
 }
 
-public func html(@HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "html", children: content())
+public func html(@interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "html", children: content())
 }
 
-public func body(@HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "body", children: content())
+public func body(@interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "body", children: content())
 }
 
-public func div(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "div", attributes: attrs, children: content())
+public func div(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "div", attributes: attrs, children: content())
 }
 
-public func p(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "p", attributes: attrs, children: content())
+public func p(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "p", attributes: attrs, children: content())
 }
 
-public func span(_ attrs: [String: String] = [:], _ text: String) -> HTMLNode {
-    HTMLNode(tag: "span", text: text, attributes: attrs)
+public func span(_ attrs: [String: String] = [:], _ text: String) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "span", text: text, attributes: attrs)
 }
 
-public func b(_ text: String) -> HTMLNode {
-    HTMLNode(tag: "b", children: [HTMLNode(text: text)])
+public func b(_ text: String) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "b", children: [interfaces_HTMLNode(text: text)])
 }
 
-public func i(_ text: String) -> HTMLNode {
-    HTMLNode(tag: "i", children: [HTMLNode(text: text)])
+public func i(_ text: String) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "i", children: [interfaces_HTMLNode(text: text)])
 }
 
-public func h(_ level: Int = 1, _ text: String) -> HTMLNode {
+public func h(_ level: Int = 1, _ text: String) -> interfaces_HTMLNode {
     let tagName = "h\(min(max(level,1),6))"
-    return HTMLNode(tag: tagName, children: [HTMLNode(text: text)])
+    return interfaces_HTMLNode(tag: tagName, children: [interfaces_HTMLNode(text: text)])
 }
 
-public func ul(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "ul", attributes: attrs, children: content())
+public func ul(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "ul", attributes: attrs, children: content())
 }
 
-public func ol(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "ol", attributes: attrs, children: content())
+public func ol(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "ol", attributes: attrs, children: content())
 }
 
-public func li(_ text: String) -> HTMLNode {
-    HTMLNode(tag: "li", children: [HTMLNode(text: text)])
+public func li(_ text: String) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "li", children: [interfaces_HTMLNode(text: text)])
 }
 
-public func tr(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "tr", attributes: attrs, children: content())
+public func tr(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "tr", attributes: attrs, children: content())
 }
 
-public func td(_ attrs: [String: String] = [:], @HTMLBuilder _ content: () -> [HTMLNode]) -> HTMLNode {
-    HTMLNode(tag: "td", attributes: attrs, children: content())
+public func td(_ attrs: [String: String] = [:], @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "td", attributes: attrs, children: content())
 }
 
 public func table(
     _ attrs: [String:String] = [:],
-    @HTMLBuilder _ content: () -> [HTMLNode]
-) -> HTMLNode {
-    HTMLNode(tag: "table", attributes: attrs, children: content())
+    @interfaces_HTMLBuilder _ content: () -> [interfaces_HTMLNode]
+) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "table", attributes: attrs, children: content())
 }
 
-public func th(_ text: String) -> HTMLNode {
-    HTMLNode(tag: "th", children: [HTMLNode(text: text)])
+public func th(_ text: String) -> interfaces_HTMLNode {
+    interfaces_HTMLNode(tag: "th", children: [interfaces_HTMLNode(text: text)])
 }
 
 public extension Dictionary where Key == String, Value == String {
