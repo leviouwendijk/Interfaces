@@ -138,3 +138,21 @@ public func runPTY(
 
     return PTYResult(exitCode: exit, stdout: buffer, stderr: Data())
 }
+
+@discardableResult
+public func runPTYPassthrough(
+    _ launchPath: String,
+    _ args: [String],
+    env: [String: String]? = nil,
+    cwd: URL? = nil
+) throws -> PTYResult {
+    try runPTY(
+        launchPath,
+        args,
+        env: env,
+        cwd: cwd,
+        onChunk: { chunk in
+            FileHandle.standardOutput.write(chunk)
+        }
+    )
+}
