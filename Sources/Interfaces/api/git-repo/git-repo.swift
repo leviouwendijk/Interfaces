@@ -38,13 +38,17 @@ public enum GitRepo {
                 private let lock = NSLock()
 
                 private var didResume = false
+                private var didTimeOut = false
                 private var stdoutData = Data()
                 private var stderrData = Data()
-                private var timedOut = false
 
                 func appendStdout(
                     _ data: Data
                 ) {
+                    guard !data.isEmpty else {
+                        return
+                    }
+
                     lock.lock()
                     defer {
                         lock.unlock()
@@ -58,6 +62,10 @@ public enum GitRepo {
                 func appendStderr(
                     _ data: Data
                 ) {
+                    guard !data.isEmpty else {
+                        return
+                    }
+
                     lock.lock()
                     defer {
                         lock.unlock()
@@ -74,10 +82,10 @@ public enum GitRepo {
                         lock.unlock()
                     }
 
-                    timedOut = true
+                    didTimeOut = true
                 }
 
-                func result(
+                func finish(
                     process: Process,
                     args: [String],
                     timeout: TimeInterval
@@ -108,11 +116,7 @@ public enum GitRepo {
                         encoding: .utf8
                     ) ?? ""
 
-                    let code = Int32(
-                        process.terminationStatus
-                    )
-
-                    if timedOut {
+                    if didTimeOut {
                         let rendered = "git " + args.joined(
                             separator: " "
                         )
@@ -131,7 +135,9 @@ public enum GitRepo {
 
                     return (
                         true,
-                        code,
+                        Int32(
+                            process.terminationStatus
+                        ),
                         out,
                         err
                     )
@@ -139,52 +145,69 @@ public enum GitRepo {
             }
 
             let state = State()
-            let group = DispatchGroup()
 
-            group.enter()
-            DispatchQueue.global(
-                qos: .userInitiated
-            )
-            .async {
-                let data = stdout.fileHandleForReading.readDataToEndOfFile()
+            stdout.fileHandleForReading.readabilityHandler = { handle in
                 state.appendStdout(
-                    data
+                    handle.availableData
                 )
-                group.leave()
             }
 
-            group.enter()
-            DispatchQueue.global(
-                qos: .userInitiated
-            )
-            .async {
-                let data = stderr.fileHandleForReading.readDataToEndOfFile()
+            stderr.fileHandleForReading.readabilityHandler = { handle in
                 state.appendStderr(
-                    data
+                    handle.availableData
                 )
-                group.leave()
             }
 
-            group.enter()
+            process.terminationHandler = { finishedProcess in
+                stdout.fileHandleForReading.readabilityHandler = nil
+                stderr.fileHandleForReading.readabilityHandler = nil
+
+                state.appendStdout(
+                    stdout.fileHandleForReading.availableData
+                )
+
+                state.appendStderr(
+                    stderr.fileHandleForReading.availableData
+                )
+
+                let result = state.finish(
+                    process: finishedProcess,
+                    args: args,
+                    timeout: timeout
+                )
+
+                guard result.shouldResume else {
+                    return
+                }
+
+                continuation.resume(
+                    returning: (
+                        result.code,
+                        result.out,
+                        result.err
+                    )
+                )
+            }
+
+            do {
+                try process.run()
+            } catch {
+                stdout.fileHandleForReading.readabilityHandler = nil
+                stderr.fileHandleForReading.readabilityHandler = nil
+
+                continuation.resume(
+                    throwing: error
+                )
+
+                return
+            }
+
             DispatchQueue.global(
                 qos: .userInitiated
             )
-            .async {
-                process.waitUntilExit()
-                group.leave()
-            }
-
-            let timer = DispatchSource.makeTimerSource(
-                queue: DispatchQueue.global(
-                    qos: .userInitiated
-                )
-            )
-
-            timer.schedule(
+            .asyncAfter(
                 deadline: .now() + timeout
-            )
-
-            timer.setEventHandler {
+            ) {
                 guard process.isRunning else {
                     return
                 }
@@ -207,43 +230,6 @@ public enum GitRepo {
                         SIGKILL
                     )
                 }
-            }
-
-            group.notify(
-                queue: DispatchQueue.global(
-                    qos: .userInitiated
-                )
-            ) {
-                timer.cancel()
-
-                let result = state.result(
-                    process: process,
-                    args: args,
-                    timeout: timeout
-                )
-
-                guard result.shouldResume else {
-                    return
-                }
-
-                continuation.resume(
-                    returning: (
-                        result.code,
-                        result.out,
-                        result.err
-                    )
-                )
-            }
-
-            do {
-                try process.run()
-                timer.resume()
-            } catch {
-                timer.cancel()
-
-                continuation.resume(
-                    throwing: error
-                )
             }
         }
     }
