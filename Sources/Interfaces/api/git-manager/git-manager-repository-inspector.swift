@@ -1,11 +1,52 @@
 import Foundation
 
+public struct GitManagerRepositoryInspectionTarget: Sendable, Codable, Hashable {
+    public let directory: URL
+    public let label: String?
+
+    public init(
+        directory: URL,
+        label: String? = nil
+    ) {
+        self.directory = directory
+        self.label = label
+    }
+
+    public var displayName: String {
+        label ?? directory.lastPathComponent
+    }
+}
+
+public enum GitManagerRepositoryInspectionProgressPhase: String, Sendable, Codable, Hashable {
+    case fetching
+    case fetched
+}
+
+public struct GitManagerRepositoryInspectionProgress: Sendable, Codable, Hashable {
+    public let target: GitManagerRepositoryInspectionTarget
+    public let phase: GitManagerRepositoryInspectionProgressPhase
+
+    public init(
+        target: GitManagerRepositoryInspectionTarget,
+        phase: GitManagerRepositoryInspectionProgressPhase
+    ) {
+        self.target = target
+        self.phase = phase
+    }
+}
+
 public enum GitManagerRepositoryInspector {
     public static func state(
         at directory: URL,
         label: String? = nil,
-        fetch: Bool = true
+        fetch: Bool = true,
+        progress: (@Sendable (GitManagerRepositoryInspectionProgress) async -> Void)? = nil
     ) async throws -> GitManagerRepositoryState {
+        let target = GitManagerRepositoryInspectionTarget(
+            directory: directory,
+            label: label
+        )
+
         guard let root = try await root(
             at: directory
         ) else {
@@ -54,9 +95,23 @@ public enum GitManagerRepositoryInspector {
 
         if fetch,
            upstream != nil {
+            await progress?(
+                GitManagerRepositoryInspectionProgress(
+                    target: target,
+                    phase: .fetching
+                )
+            )
+
             _ = try? await GitRepo.fetchDefaultRemote(
                 root,
                 purpose: .stateCheck
+            )
+
+            await progress?(
+                GitManagerRepositoryInspectionProgress(
+                    target: target,
+                    phase: .fetched
+                )
             )
         }
 
@@ -101,23 +156,115 @@ public enum GitManagerRepositoryInspector {
 
     public static func states(
         at directories: [URL],
-        fetch: Bool = true
+        fetch: Bool = true,
+        progress: (@Sendable (GitManagerRepositoryInspectionProgress) async -> Void)? = nil
+    ) async throws -> [GitManagerRepositoryState] {
+        try await states(
+            at: directories.map {
+                GitManagerRepositoryInspectionTarget(
+                    directory: $0
+                )
+            },
+            fetch: fetch,
+            progress: progress
+        )
+    }
+
+    public static func states(
+        at targets: [GitManagerRepositoryInspectionTarget],
+        fetch: Bool = true,
+        progress: (@Sendable (GitManagerRepositoryInspectionProgress) async -> Void)? = nil
     ) async throws -> [GitManagerRepositoryState] {
         var states: [GitManagerRepositoryState] = []
         states.reserveCapacity(
-            directories.count
+            targets.count
         )
 
-        for directory in directories {
+        for target in targets {
             states.append(
                 try await state(
-                    at: directory,
-                    fetch: fetch
+                    at: target.directory,
+                    label: target.label,
+                    fetch: fetch,
+                    progress: progress
                 )
             )
         }
 
         return states
+    }
+
+    public static func streamStates(
+        at directories: [URL],
+        fetch: Bool = true,
+        maxConcurrent: Int = 8,
+        progress: (@Sendable (GitManagerRepositoryInspectionProgress) async -> Void)? = nil,
+        onState: @escaping @Sendable (GitManagerRepositoryState) -> Void
+    ) async throws {
+        try await streamStates(
+            at: directories.map {
+                GitManagerRepositoryInspectionTarget(
+                    directory: $0
+                )
+            },
+            fetch: fetch,
+            maxConcurrent: maxConcurrent,
+            progress: progress,
+            onState: onState
+        )
+    }
+
+    public static func streamStates(
+        at targets: [GitManagerRepositoryInspectionTarget],
+        fetch: Bool = true,
+        maxConcurrent: Int = 8,
+        progress: (@Sendable (GitManagerRepositoryInspectionProgress) async -> Void)? = nil,
+        onState: @escaping @Sendable (GitManagerRepositoryState) -> Void
+    ) async throws {
+        let limit = max(
+            1,
+            maxConcurrent
+        )
+
+        try await withThrowingTaskGroup(
+            of: GitManagerRepositoryState.self
+        ) { group in
+            var iterator = targets.makeIterator()
+            var active = 0
+
+            func enqueueNext() {
+                guard active < limit,
+                      let target = iterator.next()
+                else {
+                    return
+                }
+
+                active += 1
+
+                group.addTask {
+                    try await state(
+                        at: target.directory,
+                        label: target.label,
+                        fetch: fetch,
+                        progress: progress
+                    )
+                }
+            }
+
+            for _ in 0..<limit {
+                enqueueNext()
+            }
+
+            while let state = try await group.next() {
+                active -= 1
+
+                onState(
+                    state
+                )
+
+                enqueueNext()
+            }
+        }
     }
 }
 

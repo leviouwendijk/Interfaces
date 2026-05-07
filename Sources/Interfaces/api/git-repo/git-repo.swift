@@ -26,58 +26,67 @@ public enum GitRepo {
             environment["LC_ALL"] = environment["LC_ALL"] ?? "C"
 
             process.environment = environment
-
-            let stdout = Pipe()
-            let stderr = Pipe()
-
             process.standardInput = FileHandle.nullDevice
-            process.standardOutput = stdout
-            process.standardError = stderr
+
+            let token = UUID().uuidString
+            let temporaryDirectory = FileManager.default.temporaryDirectory
+
+            let stdoutURL = temporaryDirectory.appendingPathComponent(
+                "gm-\(token)-stdout.txt"
+            )
+
+            let stderrURL = temporaryDirectory.appendingPathComponent(
+                "gm-\(token)-stderr.txt"
+            )
+
+            FileManager.default.createFile(
+                atPath: stdoutURL.path,
+                contents: nil
+            )
+
+            FileManager.default.createFile(
+                atPath: stderrURL.path,
+                contents: nil
+            )
+
+            let stdoutHandle: FileHandle
+            let stderrHandle: FileHandle
+
+            do {
+                stdoutHandle = try FileHandle(
+                    forWritingTo: stdoutURL
+                )
+
+                stderrHandle = try FileHandle(
+                    forWritingTo: stderrURL
+                )
+            } catch {
+                try? FileManager.default.removeItem(
+                    at: stdoutURL
+                )
+
+                try? FileManager.default.removeItem(
+                    at: stderrURL
+                )
+
+                continuation.resume(
+                    throwing: error
+                )
+
+                return
+            }
+
+            process.standardOutput = stdoutHandle
+            process.standardError = stderrHandle
 
             final class State: @unchecked Sendable {
                 private let lock = NSLock()
-
                 private var didResume = false
                 private var didTimeOut = false
-                private var stdoutData = Data()
-                private var stderrData = Data()
-
-                func appendStdout(
-                    _ data: Data
-                ) {
-                    guard !data.isEmpty else {
-                        return
-                    }
-
-                    lock.lock()
-                    defer {
-                        lock.unlock()
-                    }
-
-                    stdoutData.append(
-                        data
-                    )
-                }
-
-                func appendStderr(
-                    _ data: Data
-                ) {
-                    guard !data.isEmpty else {
-                        return
-                    }
-
-                    lock.lock()
-                    defer {
-                        lock.unlock()
-                    }
-
-                    stderrData.append(
-                        data
-                    )
-                }
 
                 func markTimedOut() {
                     lock.lock()
+
                     defer {
                         lock.unlock()
                     }
@@ -85,12 +94,9 @@ public enum GitRepo {
                     didTimeOut = true
                 }
 
-                func finish(
-                    process: Process,
-                    args: [String],
-                    timeout: TimeInterval
-                ) -> (shouldResume: Bool, code: Int32, out: String, err: String) {
+                func finish() -> (shouldResume: Bool, didTimeOut: Bool) {
                     lock.lock()
+
                     defer {
                         lock.unlock()
                     }
@@ -98,93 +104,97 @@ public enum GitRepo {
                     guard !didResume else {
                         return (
                             false,
-                            0,
-                            "",
-                            ""
+                            didTimeOut
                         )
                     }
 
                     didResume = true
 
-                    let out = String(
-                        data: stdoutData,
-                        encoding: .utf8
-                    ) ?? ""
-
-                    var err = String(
-                        data: stderrData,
-                        encoding: .utf8
-                    ) ?? ""
-
-                    if didTimeOut {
-                        let rendered = "git " + args.joined(
-                            separator: " "
-                        )
-
-                        let timeoutMessage = "Timed out after \(Int(timeout))s: \(rendered)"
-
-                        if err.trimmingCharacters(
-                            in: .whitespacesAndNewlines
-                        )
-                        .isEmpty {
-                            err = timeoutMessage
-                        } else {
-                            err += "\n\(timeoutMessage)"
-                        }
-                    }
-
                     return (
                         true,
-                        Int32(
-                            process.terminationStatus
-                        ),
-                        out,
-                        err
+                        didTimeOut
                     )
                 }
             }
 
             let state = State()
 
-            stdout.fileHandleForReading.readabilityHandler = { handle in
-                state.appendStdout(
-                    handle.availableData
+            @Sendable
+            func cleanup() {
+                try? stdoutHandle.close()
+                try? stderrHandle.close()
+
+                try? FileManager.default.removeItem(
+                    at: stdoutURL
+                )
+
+                try? FileManager.default.removeItem(
+                    at: stderrURL
                 )
             }
 
-            stderr.fileHandleForReading.readabilityHandler = { handle in
-                state.appendStderr(
-                    handle.availableData
-                )
+            @Sendable
+            func readFile(
+                _ url: URL
+            ) -> String {
+                guard let data = try? Data(
+                    contentsOf: url
+                ) else {
+                    return ""
+                }
+
+                return String(
+                    data: data,
+                    encoding: .utf8
+                ) ?? ""
             }
 
             process.terminationHandler = { finishedProcess in
-                stdout.fileHandleForReading.readabilityHandler = nil
-                stderr.fileHandleForReading.readabilityHandler = nil
+                try? stdoutHandle.close()
+                try? stderrHandle.close()
 
-                state.appendStdout(
-                    stdout.fileHandleForReading.availableData
-                )
-
-                state.appendStderr(
-                    stderr.fileHandleForReading.availableData
-                )
-
-                let result = state.finish(
-                    process: finishedProcess,
-                    args: args,
-                    timeout: timeout
-                )
+                let result = state.finish()
 
                 guard result.shouldResume else {
+                    cleanup()
+
                     return
                 }
 
+                let out = readFile(
+                    stdoutURL
+                )
+
+                var err = readFile(
+                    stderrURL
+                )
+
+                if result.didTimeOut {
+                    let rendered = "git " + args.joined(
+                        separator: " "
+                    )
+
+                    let timeoutMessage = "Timed out after \(Int(timeout))s: \(rendered)"
+
+                    if err.trimmingCharacters(
+                        in: .whitespacesAndNewlines
+                    )
+                    .isEmpty {
+                        err = timeoutMessage
+                    } else {
+                        err += "\n\(timeoutMessage)"
+                    }
+                }
+
+                cleanup()
+
                 continuation.resume(
                     returning: (
-                        result.code,
-                        result.out,
-                        result.err
+                        Int32(
+                            finishedProcess.terminationStatus
+                        ),
+                        out,
+                        err
                     )
                 )
             }
@@ -192,8 +202,13 @@ public enum GitRepo {
             do {
                 try process.run()
             } catch {
-                stdout.fileHandleForReading.readabilityHandler = nil
-                stderr.fileHandleForReading.readabilityHandler = nil
+                let result = state.finish()
+
+                cleanup()
+
+                guard result.shouldResume else {
+                    return
+                }
 
                 continuation.resume(
                     throwing: error

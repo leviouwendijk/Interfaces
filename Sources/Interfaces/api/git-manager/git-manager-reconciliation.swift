@@ -23,6 +23,8 @@ public struct GitManagerReconciliationResult: Sendable, Codable, Hashable {
 }
 
 public enum GitManagerReconciliationAppliedAction: String, Sendable, Codable, Hashable {
+    case pull
+    case push
     case hardResetToUpstream = "hard-reset-to-upstream"
 }
 
@@ -111,6 +113,26 @@ public enum GitManagerReconciliationRecommendation: String, Sendable, Codable, H
             ]
         }
     }
+
+    public var safeAppliedAction: GitManagerReconciliationAppliedAction? {
+        switch self {
+        case .pull:
+            return .pull
+
+        case .push:
+            return .push
+
+        case .resetHardUpstream:
+            return .hardResetToUpstream
+
+        case .inspectLocalChanges,
+             .inspectDivergence,
+             .configureUpstream,
+             .alreadyClean,
+             .unknown:
+            return nil
+        }
+    }
 }
 
 public enum GitManagerReconciler {
@@ -163,18 +185,11 @@ public enum GitManagerReconciler {
         var applied: GitManagerReconciliationAppliedAction?
 
         if apply {
-            guard recommendation == .resetHardUpstream else {
-                throw GitManagerError.unsafeSync(
-                    "Refusing --apply because the safe action is not a hard reset to upstream."
-                )
-            }
-
-            try await GitManagerAction.hardResetToUpstream(
+            applied = try await applySafeRecommendation(
+                recommendation,
                 cleanUntracked: cleanUntracked,
                 at: directory
             )
-
-            applied = .hardResetToUpstream
         }
 
         return GitManagerReconciliationResult(
@@ -259,5 +274,46 @@ private extension GitManagerReconciler {
         }
 
         return .unknown
+    }
+
+    static func applySafeRecommendation(
+        _ recommendation: GitManagerReconciliationRecommendation,
+        cleanUntracked: Bool,
+        at directory: URL
+    ) async throws -> GitManagerReconciliationAppliedAction? {
+        switch recommendation {
+        case .pull:
+            _ = try await GitManagerAction.pull(
+                at: directory
+            )
+
+            return .pull
+
+        case .push:
+            _ = try await GitManagerAction.push(
+                at: directory
+            )
+
+            return .push
+
+        case .resetHardUpstream:
+            try await GitManagerAction.hardResetToUpstream(
+                cleanUntracked: cleanUntracked,
+                at: directory
+            )
+
+            return .hardResetToUpstream
+
+        case .alreadyClean:
+            return nil
+
+        case .inspectLocalChanges,
+             .inspectDivergence,
+             .configureUpstream,
+             .unknown:
+            throw GitManagerError.unsafeSync(
+                "Refusing --apply because there is no safe automatic reconciliation for recommendation '\(recommendation.rawValue)'."
+            )
+        }
     }
 }

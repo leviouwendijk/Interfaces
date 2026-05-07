@@ -3,6 +3,29 @@ import Foundation
 import Interfaces
 
 enum GitManagerRenderer {
+    static func repositoryNameWidth(
+        for targets: [GitManagerRepositoryInspectionTarget]
+    ) -> Int {
+        max(
+            12,
+            targets.map(\.displayName.count).max() ?? 12
+        )
+    }
+
+    static func repositoryHeader() {
+        print("")
+        print(
+            "repositories".ansi(
+                .bold,
+                .brightWhite
+            )
+        )
+    }
+
+    static func repositoryFooter() {
+        print("")
+    }
+
     static func states(
         _ states: [GitManagerRepositoryState],
         porcelain: Bool
@@ -36,50 +59,92 @@ enum GitManagerRenderer {
             states.map { ($0.branch ?? "-").count }.max() ?? 8
         )
 
+        repositoryHeader()
+
+        for state in states {
+            stateLine(
+                state,
+                nameWidth: nameWidth,
+                branchWidth: branchWidth
+            )
+        }
+
+        repositoryFooter()
+    }
+
+    static func stateLine(
+        _ state: GitManagerRepositoryState,
+        nameWidth: Int,
+        branchWidth: Int = 12
+    ) {
+        let changes = GitManagerChangeSummary(
+            porcelain: state.porcelain
+        )
+
+        let name = state.displayName.padded(
+            to: nameWidth
+        )
+
+        let branch = (state.branch ?? "-").padded(
+            to: branchWidth
+        )
+
+        let ahead = String(
+            state.ahead ?? 0
+        )
+        .leftPadded(
+            to: 3
+        )
+
+        let behind = String(
+            state.behind ?? 0
+        )
+        .leftPadded(
+            to: 3
+        )
+
+        let dirty = changes.trackedCount > 0 ? "dirty" : "clean"
+        let untracked = changes.untrackedCount > 0 ? "untracked" : ""
+
+        print(
+            "\(name)  \(branch)  +\(ahead) -\(behind)  \(dirty.padded(to: 6))  \(untracked.padded(to: 9))  \(styled(state.classification))"
+        )
+    }
+
+    static func reconciliationHeader() {
         print("")
         print(
-            "repositories".ansi(
+            "reconcile".ansi(
                 .bold,
                 .brightWhite
             )
         )
+    }
 
-        for state in states {
-            let changes = GitManagerChangeSummary(
-                porcelain: state.porcelain
-            )
+    static func reconciliationLine(
+        _ result: GitManagerReconciliationResult,
+        nameWidth: Int,
+        recommendationWidth: Int = 20
+    ) {
+        let name = result.state.displayName.padded(
+            to: nameWidth
+        )
 
-            let name = state.displayName.padded(
-                to: nameWidth
-            )
+        let recommendation = result.recommendation.rawValue.padded(
+            to: recommendationWidth
+        )
 
-            let branch = (state.branch ?? "-").padded(
-                to: branchWidth
-            )
+        let action: String
 
-            let ahead = String(
-                state.ahead ?? 0
-            )
-            .leftPadded(
-                to: 3
-            )
-
-            let behind = String(
-                state.behind ?? 0
-            )
-            .leftPadded(
-                to: 3
-            )
-
-            let dirty = changes.trackedCount > 0 ? "dirty" : "clean"
-            let untracked = changes.untrackedCount > 0 ? "untracked" : ""
-
-            print(
-                "\(name)  \(branch)  +\(ahead) -\(behind)  \(dirty.padded(to: 6))  \(untracked.padded(to: 9))  \(styled(state.classification))"
-            )
+        if let applied = result.applied {
+            action = "applied:\(applied.rawValue)".ansi(.green)
+        } else {
+            action = "dry-run".ansi(.brightBlack)
         }
 
-        print("")
+        print(
+            "\(name)  \(styled(result.state.classification).padded(to: 24))  \(recommendation)  \(action)"
+        )
     }
 
     static func state(
