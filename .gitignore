@@ -12,3 +12,8 @@ libInterfaces.dylib.dSYM/
 libplate.dylib.dSYM/
 libInterfaces.dylib*
 libplate.dylib*
+
+# auto-added ignorables:
+compiled.pkl
+/compiled.pkl
+**/compiled.pkl

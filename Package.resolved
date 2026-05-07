@@ -1,5 +1,5 @@
 {
-  "originHash" : "d2ebac0339841b29d9543aba914e6cb7ccb603a16250195bf93cb11b081e2ace",
+  "originHash" : "f3be8cbfbbdcf12bfd705746e24e9a65b868ab85cc9961fdd0201e43513eced6",
   "pins" : [
     {
       "identity" : "ansi",
@@ -8,6 +8,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "073d9ca7870b688a312608acf14eae6ba052c0d6"
+      }
+    },
+    {
+      "identity" : "arguments",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/Arguments.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "554f854bf59b88f3bc97a41e6fa622430d88e75c"
       }
     },
     {
@@ -116,6 +125,15 @@
       "state" : {
         "branch" : "master",
         "revision" : "96a660581c7a5e8527f62f3c573f7fce24b65014"
+      }
+    },
+    {
+      "identity" : "testflows",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/leviouwendijk/TestFlows.git",
+      "state" : {
+        "branch" : "master",
+        "revision" : "cc6f6216e9c77cf2862c047a4666336cc47d25e8"
       }
     },
     {

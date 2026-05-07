@@ -1,0 +1,19 @@
+uuid = "507EBE72-7A23-4F76-9027-B13F16FA9210"
+name = "interfaces"
+types {
+    "binary"
+}
+versions {
+    release {
+        major = 0
+        minor = 1
+        patch = 0
+    }
+}
+compile {
+    use = true
+    arguments { "--targets" "gm" }
+}
+details = ""
+author = "levi"
+update = "https://raw.githubusercontent.com/leviouwendijk/Interfaces/master/build-object.pkl"

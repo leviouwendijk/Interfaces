@@ -9,27 +9,22 @@ let package = Package(
         .macOS(.v13)
     ],
     products: [
-        // Products define the executables and libraries a package produces, making them visible to other packages.
         .library(
             name: "Interfaces",
-            targets: ["Interfaces"]),
+            targets: ["Interfaces"]
+        ),
+        .executable(
+            name: "gm",
+            targets: [
+                "gm",
+            ]
+        ),
     ],
     dependencies: [
-        // testing
-        // .package(url: "https://github.com/swiftlang/swift-testing.git", from: "6.2.0"),
         .package(
             url: "https://github.com/leviouwendijk/plate.git",
             branch: "master"
         ),
-        // .package(
-        //     url: "https://github.com/leviouwendijk/Structures.git",
-        //     branch: "master"
-        // ),
-        // .package(
-        //     url: "https://github.com/leviouwendijk/Extensions.git",
-        //     branch: "master"
-        // ),
-
         .package(
             url: "https://github.com/leviouwendijk/Primitives.git",
             branch: "master"
@@ -38,32 +33,36 @@ let package = Package(
             url: "https://github.com/leviouwendijk/Indentation.git",
             branch: "master"
         ),
+        .package(
+            url: "https://github.com/leviouwendijk/ANSI.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/Arguments.git",
+            branch: "master"
+        ),
     ],
     targets: [
         .target(
             name: "Interfaces",
             dependencies: [
                 .product(name: "plate", package: "plate"),
-                // .product(name: "Structures", package: "Structures"),
-                // .product(name: "Extensions", package: "Extensions"),
                 .product(name: "Primitives", package: "Primitives"),
                 .product(name: "Indentation", package: "Indentation"),
+                .product(name: "Arguments", package: "Arguments"),
             ],
             resources: [
                 .process("Resources")
             ],
         ),
-        .testTarget(
-            name: "InterfacesTests",
+        .executableTarget(
+            name: "gm",
             dependencies: [
-                // testing
-                // .product(name: "Testing", package: "swift-testing"),
                 "Interfaces",
-                .product(name: "plate", package: "plate"),
-                // .product(name: "Structures", package: "Structures"),
-                // .product(name: "Extensions", package: "Extensions"),
-                .product(name: "Primitives", package: "Primitives"),
-            ]
+                .product(name: "ANSI", package: "ANSI"),
+                .product(name: "Arguments", package: "Arguments"),
+            ],
+            path: "Sources/GitManagerCLI"
         ),
     ]
 )
