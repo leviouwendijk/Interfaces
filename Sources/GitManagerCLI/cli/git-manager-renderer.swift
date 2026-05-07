@@ -45,7 +45,7 @@ enum GitManagerRenderer {
         )
 
         for state in states {
-            let changes = GitManagerPorcelainSummary(
+            let changes = GitManagerChangeSummary(
                 porcelain: state.porcelain
             )
 
@@ -86,7 +86,7 @@ enum GitManagerRenderer {
         _ state: GitManagerRepositoryState,
         porcelain: Bool
     ) {
-        let summary = GitManagerPorcelainSummary(
+        let summary = GitManagerChangeSummary(
             porcelain: state.porcelain
         )
 
@@ -332,103 +332,6 @@ private extension GitManagerRenderer {
 
         case .unknown:
             return classification.rawValue.ansi(.brightBlack)
-        }
-    }
-}
-
-struct GitManagerPorcelainSummary {
-    var modified: [String] = []
-    var deleted: [String] = []
-    var added: [String] = []
-    var renamed: [String] = []
-    var untracked: [String] = []
-
-    var trackedCount: Int {
-        modified.count
-            + deleted.count
-            + added.count
-            + renamed.count
-    }
-
-    var untrackedCount: Int {
-        untracked.count
-    }
-
-    var hasChanges: Bool {
-        trackedCount > 0 || untrackedCount > 0
-    }
-
-    init(
-        porcelain: String
-    ) {
-        for rawLine in porcelain.split(
-            separator: "\n",
-            omittingEmptySubsequences: true
-        ) {
-            let line = String(
-                rawLine
-            )
-
-            guard line.count >= 3 else {
-                continue
-            }
-
-            let status = String(
-                line.prefix(2)
-            )
-
-            let pathStart = line.index(
-                line.startIndex,
-                offsetBy: 3
-            )
-
-            let path = String(
-                line[pathStart...]
-            )
-
-            if status == "??" {
-                untracked.append(
-                    path
-                )
-
-                continue
-            }
-
-            if status.contains("R") {
-                renamed.append(
-                    path
-                )
-
-                continue
-            }
-
-            if status.contains("A") {
-                added.append(
-                    path
-                )
-
-                continue
-            }
-
-            if status.contains("D") {
-                deleted.append(
-                    path
-                )
-
-                continue
-            }
-
-            if status.contains("M") {
-                modified.append(
-                    path
-                )
-
-                continue
-            }
-
-            modified.append(
-                path
-            )
         }
     }
 }

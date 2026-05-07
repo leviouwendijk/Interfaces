@@ -14,6 +14,8 @@ enum GitManagerCLICommand: ArgumentCommand {
     static let children: [ArgumentCommandType] = [
         HelpCommand.self,
         StatusCommand.self,
+        ChangesCommand.self,
+        ReconcileCommand.self,
         ScanCommand.self,
         SaveCommand.self,
         CommitCommand.self,
