@@ -26,8 +26,8 @@ enum ScanCommand: RunnableArgumentCommand {
                 help: "Also show raw git status --porcelain output."
             ),
             flag(
-                "no-fetch",
-                help: "Do not fetch before checking divergence."
+                "fetch",
+                help: "Fetch before checking divergence."
             ),
             example(
                 "gm scan --root ~/main/programming",
@@ -53,8 +53,8 @@ enum ScanCommand: RunnableArgumentCommand {
             "porcelain"
         )
 
-        let fetch = try !invocation.flag(
-            "no-fetch"
+        let fetch = try invocation.flag(
+            "fetch"
         )
 
         let repos = try GitManagerRepositoryScanner.repositories(

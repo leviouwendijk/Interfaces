@@ -26,8 +26,8 @@ enum StatusCommand: RunnableArgumentCommand {
                 help: "Also show raw git status --porcelain output."
             ),
             flag(
-                "no-fetch",
-                help: "Do not fetch before checking divergence."
+                "fetch",
+                help: "Fetch before checking divergence."
             ),
             example(
                 "gm status",
@@ -51,8 +51,8 @@ enum StatusCommand: RunnableArgumentCommand {
             "porcelain"
         )
 
-        let fetch = try !invocation.flag(
-            "no-fetch"
+        let fetch = try invocation.flag(
+            "fetch"
         )
 
         if let root = try invocation.value(

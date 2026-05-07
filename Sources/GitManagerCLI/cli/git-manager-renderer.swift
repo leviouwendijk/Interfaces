@@ -45,6 +45,10 @@ enum GitManagerRenderer {
         )
 
         for state in states {
+            let changes = GitManagerPorcelainSummary(
+                porcelain: state.porcelain
+            )
+
             let name = state.displayName.padded(
                 to: nameWidth
             )
@@ -67,8 +71,8 @@ enum GitManagerRenderer {
                 to: 3
             )
 
-            let dirty = state.hasTrackedChanges ? "dirty" : "clean"
-            let untracked = state.hasUntracked ? "untracked" : ""
+            let dirty = changes.trackedCount > 0 ? "dirty" : "clean"
+            let untracked = changes.untrackedCount > 0 ? "untracked" : ""
 
             print(
                 "\(name)  \(branch)  +\(ahead) -\(behind)  \(dirty.padded(to: 6))  \(untracked.padded(to: 9))  \(styled(state.classification))"
@@ -82,6 +86,10 @@ enum GitManagerRenderer {
         _ state: GitManagerRepositoryState,
         porcelain: Bool
     ) {
+        let summary = GitManagerPorcelainSummary(
+            porcelain: state.porcelain
+        )
+
         print("")
         print(
             state.displayName.ansi(
@@ -152,6 +160,56 @@ enum GitManagerRenderer {
             )
         )
 
+        if summary.hasChanges {
+            print("")
+            print(
+                "changes".ansi(
+                    .bold,
+                    .brightWhite
+                )
+            )
+
+            if !summary.modified.isEmpty {
+                printChangeGroup(
+                    title: "modified",
+                    paths: summary.modified,
+                    color: .yellow
+                )
+            }
+
+            if !summary.deleted.isEmpty {
+                printChangeGroup(
+                    title: "deleted",
+                    paths: summary.deleted,
+                    color: .red
+                )
+            }
+
+            if !summary.added.isEmpty {
+                printChangeGroup(
+                    title: "added",
+                    paths: summary.added,
+                    color: .green
+                )
+            }
+
+            if !summary.renamed.isEmpty {
+                printChangeGroup(
+                    title: "renamed",
+                    paths: summary.renamed,
+                    color: .cyan
+                )
+            }
+
+            if !summary.untracked.isEmpty {
+                printChangeGroup(
+                    title: "untracked",
+                    paths: summary.untracked,
+                    color: .brightBlack
+                )
+            }
+        }
+
         if porcelain {
             let raw = state.porcelain.trimmingCharacters(
                 in: .whitespacesAndNewlines
@@ -159,7 +217,10 @@ enum GitManagerRenderer {
 
             print("")
             print(
-                "porcelain:".ansi(.brightBlack)
+                "porcelain".ansi(
+                    .bold,
+                    .brightWhite
+                )
             )
 
             if raw.isEmpty {
@@ -214,6 +275,33 @@ private extension GitManagerRenderer {
         "\(key.padded(to: 10).ansi(.brightBlack)) \(value)"
     }
 
+    static func printChangeGroup(
+        title: String,
+        paths: [String],
+        color: ANSIColor,
+        limit: Int = 12
+    ) {
+        guard !paths.isEmpty else {
+            return
+        }
+
+        print(
+            "  \(title.padded(to: 10).ansi(color)) \(paths.count)"
+        )
+
+        for path in paths.prefix(limit) {
+            print(
+                "    \(path)"
+            )
+        }
+
+        if paths.count > limit {
+            print(
+                "    … \(paths.count - limit) more".ansi(.brightBlack)
+            )
+        }
+    }
+
     static func styled(
         _ classification: GitManagerRepositoryClassification
     ) -> String {
@@ -244,6 +332,103 @@ private extension GitManagerRenderer {
 
         case .unknown:
             return classification.rawValue.ansi(.brightBlack)
+        }
+    }
+}
+
+struct GitManagerPorcelainSummary {
+    var modified: [String] = []
+    var deleted: [String] = []
+    var added: [String] = []
+    var renamed: [String] = []
+    var untracked: [String] = []
+
+    var trackedCount: Int {
+        modified.count
+            + deleted.count
+            + added.count
+            + renamed.count
+    }
+
+    var untrackedCount: Int {
+        untracked.count
+    }
+
+    var hasChanges: Bool {
+        trackedCount > 0 || untrackedCount > 0
+    }
+
+    init(
+        porcelain: String
+    ) {
+        for rawLine in porcelain.split(
+            separator: "\n",
+            omittingEmptySubsequences: true
+        ) {
+            let line = String(
+                rawLine
+            )
+
+            guard line.count >= 3 else {
+                continue
+            }
+
+            let status = String(
+                line.prefix(2)
+            )
+
+            let pathStart = line.index(
+                line.startIndex,
+                offsetBy: 3
+            )
+
+            let path = String(
+                line[pathStart...]
+            )
+
+            if status == "??" {
+                untracked.append(
+                    path
+                )
+
+                continue
+            }
+
+            if status.contains("R") {
+                renamed.append(
+                    path
+                )
+
+                continue
+            }
+
+            if status.contains("A") {
+                added.append(
+                    path
+                )
+
+                continue
+            }
+
+            if status.contains("D") {
+                deleted.append(
+                    path
+                )
+
+                continue
+            }
+
+            if status.contains("M") {
+                modified.append(
+                    path
+                )
+
+                continue
+            }
+
+            modified.append(
+                path
+            )
         }
     }
 }

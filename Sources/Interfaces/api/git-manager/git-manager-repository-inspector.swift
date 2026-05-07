@@ -70,8 +70,8 @@ public enum GitManagerRepositoryInspector {
             .remote
         )
 
-        let divergence = try? await GitRepo.divergence(
-            root
+        let divergence = try? await divergence(
+            at: root
         )
 
         let classification = classification(
@@ -179,6 +179,42 @@ private extension GitManagerRepositoryInspector {
         )
         .trimmingCharacters(
             in: .whitespacesAndNewlines
+        )
+    }
+
+    static func divergence(
+        at root: URL
+    ) async throws -> GitRepo.Divergence {
+        let out = try await GitRepo.gitOut(
+            root,
+            [
+                "rev-list",
+                "--left-right",
+                "--count",
+                "HEAD...@{u}",
+            ]
+        )
+        .trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        let parts = out
+            .split {
+                $0 == " " || $0 == "\t"
+            }
+            .compactMap {
+                Int($0)
+            }
+
+        guard parts.count == 2 else {
+            throw GitRepo.Error.invalidRevListOutput(
+                raw: out
+            )
+        }
+
+        return .init(
+            ahead: parts[0],
+            behind: parts[1]
         )
     }
 
