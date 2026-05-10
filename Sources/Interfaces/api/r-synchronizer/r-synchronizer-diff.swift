@@ -130,26 +130,47 @@ extension RSynchronizer {
 
             for command in report.commands {
                 for item in command.items {
-                    guard includes(
-                        item,
-                        options: options
-                    ) else {
+                    guard
+                        includes(
+                            item,
+                            options: options
+                        )
+                    else {
                         continue
                     }
 
-                    let change = try await change(
-                        command: command,
-                        item: item,
-                        options: options
-                    )
+                    do {
+                        let change = try await change(
+                            command: command,
+                            item: item,
+                            options: options
+                        )
 
-                    changes.append(
-                        change
-                    )
+                        guard change.difference.hasChanges else {
+                            continue
+                        }
 
-                    if let limit = options.limit,
-                       changes.count >= limit {
-                        return changes
+                        changes.append(
+                            change
+                        )
+
+                        if let limit = options.limit,
+                            changes.count >= limit
+                        {
+                            return changes
+                        }
+                    } catch let error as RSynchronizer.Diff.Error {
+                        switch error {
+                        case .missingInvocation:
+                            throw error
+
+                        case .unsupportedItem,
+                            .remoteDisabled,
+                            .nonText,
+                            .tooLarge,
+                            .commandFailed:
+                            continue
+                        }
                     }
                 }
             }
@@ -246,14 +267,15 @@ private extension RSynchronizer.Diff {
         _ item: RSynchronizer.Preflight.Item,
         options: Options
     ) -> Bool {
-        guard options.kinds.contains(
-            item.kind
-        ) else {
+        guard
+            options.kinds.contains(
+                item.kind
+            )
+        else {
             return false
         }
 
-        if item.kind != .deleted,
-           item.fileKind != .file {
+        guard item.fileKind == .file else {
             return false
         }
 
@@ -263,11 +285,12 @@ private extension RSynchronizer.Diff {
 
         return options.paths.contains(
             item.path
-        ) || options.paths.contains {
-            item.path.hasSuffix(
-                $0
-            )
-        }
+        )
+            || options.paths.contains {
+                item.path.hasSuffix(
+                    $0
+                )
+            }
     }
 
     static func endpoints(
@@ -415,14 +438,44 @@ private extension RSynchronizer.Diff {
             )
         }
 
-        let command = [
-            sudo ? "sudo cat --" : "cat --",
-            remoteArgument(
-                path
-            ),
+        let directory = FileManager.default.temporaryDirectory
+            .appendingPathComponent(
+                "rsynchronizer-diff-\(UUID().uuidString)",
+                isDirectory: true
+            )
+
+        try FileManager.default.createDirectory(
+            at: directory,
+            withIntermediateDirectories: true
+        )
+
+        defer {
+            try? FileManager.default.removeItem(
+                at: directory
+            )
+        }
+
+        let file = directory.appendingPathComponent(
+            "snapshot"
+        )
+
+        var arguments = [
+            "rsync",
+            "-a",
         ]
-        .joined(
-            separator: " "
+
+        if sudo {
+            arguments.append(
+                "--rsync-path=sudo rsync"
+            )
+        }
+
+        arguments.append(
+            "\(host):\(path)"
+        )
+
+        arguments.append(
+            file.path
         )
 
         var shellOptions = Shell.Options()
@@ -430,16 +483,15 @@ private extension RSynchronizer.Diff {
 
         let result = try await options.shell.run(
             "/usr/bin/env",
-            [
-                "ssh",
-                host,
-                command,
-            ],
+            arguments,
             options: shellOptions
         )
 
-        if let code = result.exitCode,
-           code != 0 {
+        if let code = exitCode(
+            from: result
+        ),
+            code != 0
+        {
             throw Error.commandFailed(
                 endpoint: endpoint,
                 exitCode: code,
@@ -447,9 +499,13 @@ private extension RSynchronizer.Diff {
             )
         }
 
+        let data = try Data(
+            contentsOf: file
+        )
+
         return try snapshot(
             endpoint: endpoint,
-            data: result.stdout,
+            data: data,
             options: options
         )
     }
@@ -556,6 +612,18 @@ private extension RSynchronizer.Diff {
             of: "'",
             with: "'\"'\"'"
         ) + "'"
+    }
+
+    static func exitCode(
+        from result: Shell.Result
+    ) -> Int? {
+        if case .exited(let code) = result.status {
+            return Int(
+                code
+            )
+        }
+
+        return nil
     }
 }
 
