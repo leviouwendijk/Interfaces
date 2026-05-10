@@ -3,25 +3,74 @@ import Foundation
 import Indentation
 
 public enum RSynchronizer {
+    public struct HostPermission: Sendable, Hashable {
+        public var hostnames: Set<String>
+
+        public static let any = Self()
+
+        public init(
+            _ hostnames: Set<String> = []
+        ) {
+            self.hostnames = hostnames
+        }
+
+        public func allows(
+            _ hostname: String
+        ) -> Bool {
+            hostnames.isEmpty || hostnames.contains(
+                hostname
+            )
+        }
+
+        public func require(
+            _ hostname: String,
+            route: String
+        ) throws {
+            guard allows(hostname) else {
+                throw PermissionError.host_not_allowed(
+                    hostname: hostname,
+                    route: route
+                )
+            }
+        }
+    }
+
+    public enum PermissionError: Error, LocalizedError, Sendable {
+        case host_not_allowed(
+            hostname: String,
+            route: String
+        )
+
+        public var errorDescription: String? {
+            switch self {
+            case .host_not_allowed(let hostname, let route):
+                return "Host '\(hostname)' is not allowed to run rsync route '\(route)'."
+            }
+        }
+    }
+
     public struct Route: Sendable {
         public let name: String
         public let aliases: [String]
         public let batches: [Batch]
         public let deletesExtraneous: Bool
         public let hooks: [Hook]
+        public let hostPermission: HostPermission
 
         public init(
             name: String,
             aliases: [String] = [],
             deletesExtraneous: Bool = false,
             batches: [Batch],
-            hooks: [Hook] = []
+            hooks: [Hook] = [],
+            hostPermission: HostPermission = .any
         ) {
             self.name = name
             self.aliases = aliases
             self.batches = batches
             self.deletesExtraneous = deletesExtraneous
             self.hooks = hooks
+            self.hostPermission = hostPermission
         }
 
         public func matches(_ candidate: String) -> Bool {
