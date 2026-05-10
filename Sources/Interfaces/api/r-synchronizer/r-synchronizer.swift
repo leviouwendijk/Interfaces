@@ -152,6 +152,7 @@ public enum RSynchronizer {
 
     public static func plan(
         _ route: Route,
+        options: PlanOptions = .init(),
         includeDeleteOverride: Bool? = nil
     ) -> Plan {
         let includeDelete = includeDeleteOverride ?? route.deletesExtraneous
@@ -160,42 +161,104 @@ public enum RSynchronizer {
         for batch in route.batches {
             for source in batch.sources {
                 for destination in batch.destinations {
-                    var argv: [String] = []
-                    argv.append("rsync")
-                    argv.append("-avz")
-                    argv.append("--progress")
+                    let target: Endpoint
 
-                    if includeDelete {
-                        argv.append("--delete")
-                    }
-                    if let chown = batch.chown, !chown.isEmpty {
-                        argv.append("--chown=\(chown)")
-                    }
-                    if !batch.excludes.isEmpty {
-                        for p in batch.excludes {
-                            argv.append("--exclude=\(p)")
-                        }
-                    }
-                    if batch.requiresSudo {
-                        argv.append("--rsync-path=sudo rsync")
-                    }
-
-                    argv.append(expandTilde(source))
-
-                    let dir = destination.directory
-                    if let host = destination.host, !host.isEmpty {
-                        argv.append("\(host):\(dir)")
+                    if let host = destination.host,
+                       !host.isEmpty {
+                        target = .remote(
+                            host: host,
+                            path: destination.directory
+                        )
                     } else {
-                        argv.append(expandTilde(dir))
+                        target = .local(
+                            destination.directory
+                        )
                     }
 
-                    commands.append(Command(arguments: argv))
+                    var seenExcludes = Set<String>()
+
+                    let exclude = (
+                        batch.excludes.map(Exclude.init)
+                        + options.exclude
+                    )
+                    .filter { item in
+                        seenExcludes.insert(
+                            item.pattern
+                        )
+                        .inserted
+                    }
+
+                    let invocation = Invocation(
+                        source: .local(
+                            source
+                        ),
+                        destination: target,
+                        delete: includeDelete ? .extraneous : .keep,
+                        owner: batch.chown,
+                        exclude: exclude,
+                        privilege: batch.requiresSudo ? .sudo : .normal,
+                        raw: options.raw
+                    )
+
+                    commands.append(
+                        invocation.command()
+                    )
                 }
             }
         }
 
-        return Plan(route: route, commands: commands)
+        return Plan(
+            route: route,
+            commands: commands
+        )
     }
+
+    // public static func plan(
+    //     _ route: Route,
+    //     includeDeleteOverride: Bool? = nil
+    // ) -> Plan {
+    //     let includeDelete = includeDeleteOverride ?? route.deletesExtraneous
+    //     var commands: [Command] = []
+
+    //     for batch in route.batches {
+    //         for source in batch.sources {
+    //             for destination in batch.destinations {
+    //                 var argv: [String] = []
+    //                 argv.append("rsync")
+    //                 argv.append("-avz")
+    //                 argv.append("--progress")
+
+    //                 if includeDelete {
+    //                     argv.append("--delete")
+    //                 }
+    //                 if let chown = batch.chown, !chown.isEmpty {
+    //                     argv.append("--chown=\(chown)")
+    //                 }
+    //                 if !batch.excludes.isEmpty {
+    //                     for p in batch.excludes {
+    //                         argv.append("--exclude=\(p)")
+    //                     }
+    //                 }
+    //                 if batch.requiresSudo {
+    //                     argv.append("--rsync-path=sudo rsync")
+    //                 }
+
+    //                 argv.append(expandTilde(source))
+
+    //                 let dir = destination.directory
+    //                 if let host = destination.host, !host.isEmpty {
+    //                     argv.append("\(host):\(dir)")
+    //                 } else {
+    //                     argv.append(expandTilde(dir))
+    //                 }
+
+    //                 commands.append(Command(arguments: argv))
+    //             }
+    //         }
+    //     }
+
+    //     return Plan(route: route, commands: commands)
+    // }
 
     public enum OutputPolicy: Sendable {
         case verbose               // tee live
@@ -212,23 +275,24 @@ public enum RSynchronizer {
     }
 
     public struct ExecutionOptions: Sendable {
+        public var plan: PlanOptions
         public var dryRun: Bool
         public var additionalRsyncFlags: [String]
         public var shell: Shell
         public var cwd: URL?
         public var output: OutputPolicy
-        // public var onEvent: (@Sendable (Event) -> Void)?
         public var onEvent: (@Sendable (Event) async -> Void)?
 
         public init(
+            plan: PlanOptions = .init(),
             dryRun: Bool = false,
             additionalRsyncFlags: [String] = [],
             shell: Shell = .init(.path("/usr/bin/env")),
             cwd: URL? = nil,
             output: OutputPolicy = .verbose,
-            // onEvent: (@Sendable (Event) -> Void)? = nil
             onEvent: (@Sendable (Event) async -> Void)? = nil
         ) {
+            self.plan = plan
             self.dryRun = dryRun
             self.additionalRsyncFlags = additionalRsyncFlags
             self.shell = shell
@@ -244,65 +308,117 @@ public enum RSynchronizer {
         options: ExecutionOptions = .init(),
         includeDeleteOverride: Bool? = nil
     ) async throws -> [Shell.Result] {
+        let syncPlan = RSynchronizer.plan(
+            route,
+            options: options.plan,
+            includeDeleteOverride: includeDeleteOverride
+        )
 
-        let plan = plan(route, includeDeleteOverride: includeDeleteOverride)
         var results: [Shell.Result] = []
-        let total = plan.commands.count
+        let total = syncPlan.commands.count
 
-        for (i, cmd) in plan.commands.enumerated() {
-            await options.onEvent?(.commandStarted(command: cmd, index: i, total: total))
+        for (index, command) in syncPlan.commands.enumerated() {
+            await options.onEvent?(
+                .commandStarted(
+                    command: command,
+                    index: index,
+                    total: total
+                )
+            )
 
-            var argv = cmd.arguments
+            var argv = command.arguments
+
             if options.dryRun {
-                argv.insert("--dry-run", at: 1)
+                argv.insert(
+                    "--dry-run",
+                    at: 1
+                )
             }
+
             if !options.additionalRsyncFlags.isEmpty {
-                argv.insert(contentsOf: options.additionalRsyncFlags, at: 1)
+                argv.insert(
+                    contentsOf: options.additionalRsyncFlags,
+                    at: 1
+                )
             }
 
-            let tee = (options.output == .verbose)
+            let tee = options.output == .verbose
 
-            var shOpt = Shell.Options()
-            shOpt.cwd = options.cwd
-            shOpt.teeToStdout = tee
-            shOpt.teeToStderr = tee
+            var shellOptions = Shell.Options()
+            shellOptions.cwd = options.cwd
+            shellOptions.teeToStdout = tee
+            shellOptions.teeToStderr = tee
 
-            let res = try await options.shell.run("/usr/bin/env", argv, options: shOpt)
-            results.append(res)
+            let result = try await options.shell.run(
+                "/usr/bin/env",
+                argv,
+                options: shellOptions
+            )
 
-            await options.onEvent?(.commandFinished(command: cmd, result: res))
+            results.append(
+                result
+            )
 
-            if case .exited(let code) = res.status, code != 0 {
+            await options.onEvent?(
+                .commandFinished(
+                    command: command,
+                    result: result
+                )
+            )
+
+            if case .exited(let code) = result.status,
+               code != 0 {
                 throw RSynchronizerError.commandFailed(
-                    commandLine: cmd.prettyLine,
+                    commandLine: argv.joined(
+                        separator: " "
+                    ),
                     exitCode: code
                 )
             }
         }
 
-        // -----------------------------
-        // Post-sync hooks (post-deploy)
-        // -----------------------------
         if !route.hooks.isEmpty {
             let totalHooks = route.hooks.count
 
-            for (i, hook) in route.hooks.enumerated() {
-                await options.onEvent?(.hookStarted(hook, index: i, total: totalHooks))
+            for (index, hook) in route.hooks.enumerated() {
+                await options.onEvent?(
+                    .hookStarted(
+                        hook,
+                        index: index,
+                        total: totalHooks
+                    )
+                )
 
-                let cmd = hookCommand(hook)
+                let command = hookCommand(
+                    hook
+                )
 
-                let tee = (options.output == .verbose)
-                var shOpt = Shell.Options()
-                shOpt.cwd = options.cwd
-                shOpt.teeToStdout = tee
-                shOpt.teeToStderr = tee
+                let tee = options.output == .verbose
 
-                let res = try await options.shell.run("/usr/bin/env", cmd.arguments, options: shOpt)
-                results.append(res)
+                var shellOptions = Shell.Options()
+                shellOptions.cwd = options.cwd
+                shellOptions.teeToStdout = tee
+                shellOptions.teeToStderr = tee
 
-                await options.onEvent?(.hookFinished(hook, result: res))
+                let result = try await options.shell.run(
+                    "/usr/bin/env",
+                    command.arguments,
+                    options: shellOptions
+                )
 
-                if case .exited(let code) = res.status, code != 0 {
+                results.append(
+                    result
+                )
+
+                await options.onEvent?(
+                    .hookFinished(
+                        hook,
+                        result: result
+                    )
+                )
+
+                if case .exited(let code) = result.status,
+                   code != 0 {
                     throw RSynchronizerError.hookFailed(
                         hookLine: hook.line,
                         exitCode: code
@@ -313,6 +429,109 @@ public enum RSynchronizer {
 
         return results
     }
+
+    // public struct ExecutionOptions: Sendable {
+    //     public var dryRun: Bool
+    //     public var additionalRsyncFlags: [String]
+    //     public var shell: Shell
+    //     public var cwd: URL?
+    //     public var output: OutputPolicy
+    //     // public var onEvent: (@Sendable (Event) -> Void)?
+    //     public var onEvent: (@Sendable (Event) async -> Void)?
+
+    //     public init(
+    //         dryRun: Bool = false,
+    //         additionalRsyncFlags: [String] = [],
+    //         shell: Shell = .init(.path("/usr/bin/env")),
+    //         cwd: URL? = nil,
+    //         output: OutputPolicy = .verbose,
+    //         // onEvent: (@Sendable (Event) -> Void)? = nil
+    //         onEvent: (@Sendable (Event) async -> Void)? = nil
+    //     ) {
+    //         self.dryRun = dryRun
+    //         self.additionalRsyncFlags = additionalRsyncFlags
+    //         self.shell = shell
+    //         self.cwd = cwd
+    //         self.output = output
+    //         self.onEvent = onEvent
+    //     }
+    // }
+
+    // @discardableResult
+    // public static func execute(
+    //     _ route: Route,
+    //     options: ExecutionOptions = .init(),
+    //     includeDeleteOverride: Bool? = nil
+    // ) async throws -> [Shell.Result] {
+
+    //     let plan = plan(route, includeDeleteOverride: includeDeleteOverride)
+    //     var results: [Shell.Result] = []
+    //     let total = plan.commands.count
+
+    //     for (i, cmd) in plan.commands.enumerated() {
+    //         await options.onEvent?(.commandStarted(command: cmd, index: i, total: total))
+
+    //         var argv = cmd.arguments
+    //         if options.dryRun {
+    //             argv.insert("--dry-run", at: 1)
+    //         }
+    //         if !options.additionalRsyncFlags.isEmpty {
+    //             argv.insert(contentsOf: options.additionalRsyncFlags, at: 1)
+    //         }
+
+    //         let tee = (options.output == .verbose)
+
+    //         var shOpt = Shell.Options()
+    //         shOpt.cwd = options.cwd
+    //         shOpt.teeToStdout = tee
+    //         shOpt.teeToStderr = tee
+
+    //         let res = try await options.shell.run("/usr/bin/env", argv, options: shOpt)
+    //         results.append(res)
+
+    //         await options.onEvent?(.commandFinished(command: cmd, result: res))
+
+    //         if case .exited(let code) = res.status, code != 0 {
+    //             throw RSynchronizerError.commandFailed(
+    //                 commandLine: cmd.prettyLine,
+    //                 exitCode: code
+    //             )
+    //         }
+    //     }
+
+    //     // -----------------------------
+    //     // Post-sync hooks (post-deploy)
+    //     // -----------------------------
+    //     if !route.hooks.isEmpty {
+    //         let totalHooks = route.hooks.count
+
+    //         for (i, hook) in route.hooks.enumerated() {
+    //             await options.onEvent?(.hookStarted(hook, index: i, total: totalHooks))
+
+    //             let cmd = hookCommand(hook)
+
+    //             let tee = (options.output == .verbose)
+    //             var shOpt = Shell.Options()
+    //             shOpt.cwd = options.cwd
+    //             shOpt.teeToStdout = tee
+    //             shOpt.teeToStderr = tee
+
+    //             let res = try await options.shell.run("/usr/bin/env", cmd.arguments, options: shOpt)
+    //             results.append(res)
+
+    //             await options.onEvent?(.hookFinished(hook, result: res))
+
+    //             if case .exited(let code) = res.status, code != 0 {
+    //                 throw RSynchronizerError.hookFailed(
+    //                     hookLine: hook.line,
+    //                     exitCode: code
+    //                 )
+    //             }
+    //         }
+    //     }
+
+    //     return results
+    // }
 
     private static func expandTilde(_ path: String) -> String {
         NSString(string: path).expandingTildeInPath
