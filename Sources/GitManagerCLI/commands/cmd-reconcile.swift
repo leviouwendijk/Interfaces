@@ -173,7 +173,15 @@ enum ReconcileCommand: RunnableArgumentCommand {
     }
 }
 
-private extension ReconcileCommand {
+extension ReconcileCommand {
+    internal enum BatchReconciliationRow: Sendable {
+        case result(GitManagerReconciliationResult)
+        case failure(
+            target: GitManagerRepositoryInspectionTarget,
+            message: String
+        )
+    }
+
     static func reconcileTargets(
         _ targets: [GitManagerRepositoryInspectionTarget],
         fetch: Bool,
@@ -194,29 +202,109 @@ private extension ReconcileCommand {
 
         GitManagerRenderer.reconciliationHeader()
 
-        try await withThrowingTaskGroup(
-            of: GitManagerReconciliationResult.self
+        await withTaskGroup(
+            of: BatchReconciliationRow.self
         ) { group in
             for target in targets {
                 group.addTask {
-                    try await GitManagerReconciler.reconcile(
-                        at: target.directory,
+                    await reconcileTarget(
+                        target,
                         fetch: fetch,
                         apply: apply,
-                        cleanUntracked: clean
+                        clean: clean
                     )
                 }
             }
 
-            for try await result in group {
-                GitManagerRenderer.reconciliationLine(
-                    result,
-                    nameWidth: nameWidth
-                )
+            for await row in group {
+                switch row {
+                case .result(let result):
+                    GitManagerRenderer.reconciliationLine(
+                        result,
+                        nameWidth: nameWidth
+                    )
+
+                case .failure(let target, let message):
+                    renderFailure(
+                        target,
+                        message: message,
+                        nameWidth: nameWidth
+                    )
+                }
             }
         }
 
         GitManagerRenderer.repositoryFooter()
+    }
+
+    static func reconcileTarget(
+        _ target: GitManagerRepositoryInspectionTarget,
+        fetch: Bool,
+        apply: Bool,
+        clean: Bool
+    ) async -> BatchReconciliationRow {
+        do {
+            let dryRun = try await GitManagerReconciler.reconcile(
+                at: target.directory,
+                fetch: fetch,
+                apply: false,
+                cleanUntracked: clean
+            )
+
+            guard apply else {
+                return .result(
+                    dryRun
+                )
+            }
+
+            guard dryRun.recommendation.safeAppliedAction != nil else {
+                return .result(
+                    dryRun
+                )
+            }
+
+            let applied = try await GitManagerReconciler.reconcile(
+                at: target.directory,
+                fetch: false,
+                apply: true,
+                cleanUntracked: clean
+            )
+
+            return .result(
+                applied
+            )
+        } catch {
+            return .failure(
+                target: target,
+                message: errorMessage(
+                    error
+                )
+            )
+        }
+    }
+
+    static func renderFailure(
+        _ target: GitManagerRepositoryInspectionTarget,
+        message: String,
+        nameWidth: Int,
+        recommendationWidth: Int = 20
+    ) {
+        let name = target.displayName.padded(
+            to: nameWidth
+        )
+
+        print(
+            "\(name)  \("error".padded(to: 24))  \("failed".padded(to: recommendationWidth))  \(message)"
+        )
+    }
+
+    static func errorMessage(
+        _ error: Error
+    ) -> String {
+        (error as? LocalizedError)?.errorDescription
+            ?? String(
+                describing: error
+            )
     }
 
     static func renderResult(

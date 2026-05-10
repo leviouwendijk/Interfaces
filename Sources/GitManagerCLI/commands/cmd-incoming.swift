@@ -1,0 +1,212 @@
+import Arguments
+import Foundation
+import Interfaces
+
+enum IncomingCommand: RunnableArgumentCommand {
+    static let name = "incoming"
+
+    static let aliases = [
+        "in",
+    ]
+
+    static func components() throws -> [CommandComponentLowerable] {
+        [
+            about("Show commits and files that exist upstream but not locally."),
+            flag(
+                "fetch",
+                help: "Fetch before inspecting incoming commits."
+            ),
+            flag(
+                "stat",
+                help: "Show diff stat for incoming commits."
+            ),
+            flag(
+                "name-only",
+                help: "Only show incoming file paths."
+            ),
+            opt(
+                "limit",
+                as: Int.self,
+                default: 30,
+                help: "Maximum number of commits to show."
+            ),
+            example(
+                "gm incoming --fetch",
+                description: "Fetch, then show incoming commits."
+            ),
+            example(
+                "gm incoming --stat",
+                description: "Show incoming commits and diff stat."
+            ),
+        ]
+    }
+
+    static func run(
+        _ invocation: ParsedInvocation
+    ) async throws {
+        let fetch = try invocation.flag(
+            "fetch"
+        )
+
+        let stat = try invocation.flag(
+            "stat"
+        )
+
+        let nameOnly = try invocation.flag(
+            "name-only"
+        )
+
+        let limit = try invocation.value(
+            "limit",
+            as: Int.self
+        ) ?? 30
+
+        let root = try await requireRoot()
+
+        if fetch {
+            GitManagerRenderer.command(
+                "git fetch <default-remote> <default-branch>"
+            )
+
+            _ = try await GitRepo.fetchDefaultRemote(
+                root,
+                purpose: .stateCheck
+            )
+        }
+
+        let state = try await GitManagerRepositoryInspector.state(
+            at: root,
+            fetch: false
+        )
+
+        GitManagerRenderer.state(
+            state,
+            porcelain: false
+        )
+
+        print(
+            "incoming".ansi(
+                .bold,
+                .brightWhite
+            )
+        )
+
+        print(
+            row(
+                "meaning",
+                "commits reachable from @{u} that are not reachable from HEAD"
+            )
+        )
+
+        print(
+            row(
+                "range",
+                "HEAD..@{u}"
+            )
+        )
+
+        print("")
+
+        if nameOnly {
+            print(
+                "files".ansi(
+                    .bold,
+                    .brightWhite
+                )
+            )
+
+            GitManagerRenderer.output(
+                try await GitManagerAction.raw(
+                    [
+                        "diff",
+                        "--name-status",
+                        "HEAD..@{u}",
+                    ],
+                    at: root
+                )
+            )
+
+            return
+        }
+
+        print(
+            "commits".ansi(
+                .bold,
+                .brightWhite
+            )
+        )
+
+        GitManagerRenderer.output(
+            try await GitManagerAction.raw(
+                [
+                    "log",
+                    "--oneline",
+                    "--decorate",
+                    "--max-count=\(limit)",
+                    "HEAD..@{u}",
+                ],
+                at: root
+            )
+        )
+
+        if stat {
+            print("")
+            print(
+                "diff stat".ansi(
+                    .bold,
+                    .brightWhite
+                )
+            )
+
+            GitManagerRenderer.output(
+                try await GitManagerAction.raw(
+                    [
+                        "diff",
+                        "--stat",
+                        "HEAD..@{u}",
+                    ],
+                    at: root
+                )
+            )
+        }
+    }
+}
+
+private extension IncomingCommand {
+    static func requireRoot() async throws -> URL {
+        let state = try await GitManagerRepositoryInspector.state(
+            at: GitManagerCLI.currentDirectory,
+            fetch: false
+        )
+
+        guard let root = state.root else {
+            throw GitManagerError.notGitRepository(
+                GitManagerCLI.currentDirectory.path
+            )
+        }
+
+        return root
+    }
+
+    static func row(
+        _ key: String,
+        _ value: String
+    ) -> String {
+        "\(key.padded(to: 10).ansi(.brightBlack)) \(value)"
+    }
+}
+
+private extension String {
+    func padded(
+        to width: Int
+    ) -> String {
+        guard count < width else {
+            return self
+        }
+
+        return self + String(
+            repeating: " ",
+            count: width - count
+        )
+    }
+}

@@ -15,6 +15,12 @@ enum GitManagerCLICommand: ArgumentCommand {
         HelpCommand.self,
         StatusCommand.self,
         ChangesCommand.self,
+        DiffCommand.self,
+        FetchCommand.self,
+        IncomingCommand.self,
+        OutgoingCommand.self,
+        ConflictsCommand.self,
+        RebaseCommand.self,
         ReconcileCommand.self,
         ScanCommand.self,
         SaveCommand.self,
@@ -24,6 +30,7 @@ enum GitManagerCLICommand: ArgumentCommand {
         SyncCommand.self,
         ResetCommand.self,
         RawCommand.self,
+        InitCommand.self,
     ]
 
     static func main() async {
