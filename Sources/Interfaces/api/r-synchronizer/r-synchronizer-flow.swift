@@ -331,6 +331,7 @@ public extension RSynchronizer {
 
         public struct Summary: Sendable, Hashable {
             public var items: [Item]
+            public var ignoredItems: [Item]
 
             public var created: Int {
                 createdItems.count
@@ -346,12 +347,20 @@ public extension RSynchronizer {
                 deletedItems.count
             }
 
+            public var ignored: Int {
+                ignoredItems.count
+            }
+
             public var changed: Int {
                 items.count
             }
 
             public var lines: [String] {
                 items.map(\.raw)
+            }
+
+            public var ignoredLines: [String] {
+                ignoredItems.map(\.raw)
             }
 
             public var createdItems: [Item] {
@@ -395,9 +404,11 @@ public extension RSynchronizer {
             }
 
             public init(
-                items: [Item] = []
+                items: [Item] = [],
+                ignoredItems: [Item] = []
             ) {
                 self.items = items
+                self.ignoredItems = ignoredItems
             }
         }
 
@@ -452,6 +463,9 @@ public extension RSynchronizer {
                 self.summary = Summary(
                     items: commands.flatMap {
                         $0.summary.items
+                    },
+                    ignoredItems: commands.flatMap {
+                        $0.summary.ignoredItems
                     }
                 )
             }
@@ -684,10 +698,17 @@ private extension RSynchronizer.Preflight.Summary {
             return self
 
         case .contentOnly:
+            let ignored = items.filter {
+                $0.is_timestamp_only_metadata
+            }
+
+            let active = items.filter {
+                !$0.is_timestamp_only_metadata
+            }
+
             return .init(
-                items: items.filter {
-                    !$0.is_timestamp_only_metadata
-                }
+                items: active,
+                ignoredItems: ignoredItems + ignored
             )
         }
     }
