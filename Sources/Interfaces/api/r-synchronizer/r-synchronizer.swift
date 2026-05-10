@@ -146,8 +146,45 @@ public enum RSynchronizer {
     }
 
     public struct Plan: Sendable {
+        public struct Entry: Sendable {
+            public var invocation: Invocation?
+            public var command: Command
+
+            public init(
+                invocation: Invocation? = nil,
+                command: Command
+            ) {
+                self.invocation = invocation
+                self.command = command
+            }
+        }
+
         public let route: Route
-        public let commands: [Command]
+        public let entries: [Entry]
+
+        public var commands: [Command] {
+            entries.map(\.command)
+        }
+
+        public init(
+            route: Route,
+            entries: [Entry]
+        ) {
+            self.route = route
+            self.entries = entries
+        }
+
+        public init(
+            route: Route,
+            commands: [Command]
+        ) {
+            self.route = route
+            self.entries = commands.map {
+                Entry(
+                    command: $0
+                )
+            }
+        }
     }
 
     public static func plan(
@@ -156,7 +193,7 @@ public enum RSynchronizer {
         includeDeleteOverride: Bool? = nil
     ) -> Plan {
         let includeDelete = includeDeleteOverride ?? route.deletesExtraneous
-        var commands: [Command] = []
+        var entries: [Plan.Entry] = []
 
         for batch in route.batches {
             for source in batch.sources {
@@ -200,8 +237,11 @@ public enum RSynchronizer {
                         raw: options.raw
                     )
 
-                    commands.append(
-                        invocation.command()
+                    entries.append(
+                        .init(
+                            invocation: invocation,
+                            command: invocation.command()
+                        )
                     )
                 }
             }
@@ -209,7 +249,7 @@ public enum RSynchronizer {
 
         return Plan(
             route: route,
-            commands: commands
+            entries: entries
         )
     }
 

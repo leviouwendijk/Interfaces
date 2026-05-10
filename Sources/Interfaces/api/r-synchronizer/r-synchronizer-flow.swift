@@ -15,7 +15,7 @@ public extension RSynchronizer {
             public init(
                 flags: [String] = [
                     "--out-format=%i\t%l\t%n%L",
-                    "--stats"
+                    "--stats",
                 ],
                 output: OutputPolicy = .quiet
             ) {
@@ -99,7 +99,7 @@ public extension RSynchronizer {
                 )
 
                 guard let parsed,
-                      Self.is_itemized(parsed.code)
+                    Self.is_itemized(parsed.code)
                 else {
                     return nil
                 }
@@ -141,9 +141,11 @@ public extension RSynchronizer {
                     )
                 }
 
-                guard let space = line.firstIndex(
-                    of: " "
-                ) else {
+                guard
+                    let space = line.firstIndex(
+                        of: " "
+                    )
+                else {
                     return nil
                 }
 
@@ -232,7 +234,8 @@ public extension RSynchronizer {
                 var out: [Reason] = []
 
                 if let first = code.first,
-                   first == ">" || first == "<" {
+                    first == ">" || first == "<"
+                {
                     out.append(
                         .transfer
                     )
@@ -311,7 +314,7 @@ public extension RSynchronizer {
                 _ code: String
             ) -> Bool {
                 guard code.count >= 11,
-                      let first = code.first
+                    let first = code.first
                 else {
                     return false
                 }
@@ -398,16 +401,59 @@ public extension RSynchronizer {
             }
         }
 
+        public struct CommandReport: Sendable {
+            public var index: Int
+            public var entry: Plan.Entry
+            public var result: Shell.Result
+            public var summary: Summary
+
+            public var command: Command {
+                entry.command
+            }
+
+            public var items: [Item] {
+                summary.items
+            }
+
+            public init(
+                index: Int,
+                entry: Plan.Entry,
+                result: Shell.Result,
+                summary: Summary
+            ) {
+                self.index = index
+                self.entry = entry
+                self.result = result
+                self.summary = summary
+            }
+        }
+
         public struct Report: Sendable {
             public var results: [Shell.Result]
             public var summary: Summary
+            public var commands: [CommandReport]
 
             public init(
                 results: [Shell.Result],
-                summary: Summary
+                summary: Summary,
+                commands: [CommandReport] = []
             ) {
                 self.results = results
                 self.summary = summary
+                self.commands = commands
+            }
+
+            public init(
+                commands: [CommandReport]
+            ) {
+                self.commands = commands
+                self.results = commands.map(\.result)
+
+                self.summary = Summary(
+                    items: commands.flatMap {
+                        $0.summary.items
+                    }
+                )
             }
         }
 
@@ -415,13 +461,34 @@ public extension RSynchronizer {
             public static func summary(
                 from output: String
             ) -> Summary {
-                let items = output
-                    .split(separator: "\n", omittingEmptySubsequences: false)
+                let items =
+                    output
+                    .split(
+                        separator: "\n",
+                        omittingEmptySubsequences: false
+                    )
                     .map(String.init)
                     .compactMap(Item.init)
 
                 return Summary(
                     items: items
+                )
+            }
+
+            public static func summary(
+                from result: Shell.Result
+            ) -> Summary {
+                summary(
+                    from: [
+                        result.stdoutText(),
+                        result.stderrText(),
+                    ]
+                    .filter {
+                        !$0.isEmpty
+                    }
+                    .joined(
+                        separator: "\n"
+                    )
                 )
             }
         }
@@ -535,29 +602,43 @@ public extension RSynchronizer {
             options.execution.additionalRsyncFlags
             + options.preflight.flags
 
+        let inspectedRoute = route.hookless()
+
+        let syncPlan = RSynchronizer.plan(
+            inspectedRoute,
+            options: execution.plan,
+            includeDeleteOverride: options.includeDeleteOverride
+        )
+
         let results = try await execute(
-            route.hookless(),
+            inspectedRoute,
             options: execution,
             includeDeleteOverride: options.includeDeleteOverride
         )
 
-        let output = results
-            .flatMap {
-                [
-                    $0.stdoutText(),
-                    $0.stderrText()
-                ]
-            }
-            .filter {
-                !$0.isEmpty
-            }
-            .joined(separator: "\n")
+        let commandReports = Array(
+            zip(
+                syncPlan.entries,
+                results
+            )
+        )
+        .enumerated()
+        .map { index, pair in
+            let entry = pair.0
+            let result = pair.1
+
+            return Preflight.CommandReport(
+                index: index,
+                entry: entry,
+                result: result,
+                summary: Preflight.Parser.summary(
+                    from: result
+                )
+            )
+        }
 
         return .init(
-            results: results,
-            summary: Preflight.Parser.summary(
-                from: output
-            )
+            commands: commandReports
         )
     }
 
