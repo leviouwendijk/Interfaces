@@ -234,6 +234,7 @@ public enum RSynchronizer {
                         owner: batch.chown,
                         exclude: exclude,
                         privilege: batch.requiresSudo ? .sudo : .normal,
+                        comparison: options.comparison,
                         raw: options.raw
                     )
 

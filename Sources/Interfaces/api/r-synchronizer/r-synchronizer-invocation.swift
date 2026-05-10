@@ -88,15 +88,35 @@ extension RSynchronizer {
         ]
     }
 
+    public enum ComparisonPolicy: Sendable, Hashable {
+        case checksum
+        case quickCheck
+
+        public var arguments: [String] {
+            switch self {
+            case .checksum:
+                return [
+                    "--checksum",
+                ]
+
+            case .quickCheck:
+                return []
+            }
+        }
+    }
+
     public struct PlanOptions: Sendable, Hashable {
         public var exclude: [Exclude]
+        public var comparison: ComparisonPolicy
         public var raw: [String]
 
         public init(
             exclude: [Exclude] = Defaults.exclude,
+            comparison: ComparisonPolicy = .checksum,
             raw: [String] = []
         ) {
             self.exclude = exclude
+            self.comparison = comparison
             self.raw = raw
         }
     }
@@ -159,6 +179,7 @@ extension RSynchronizer {
         public var owner: String?
         public var exclude: [Exclude]
         public var privilege: Privilege
+        public var comparison: ComparisonPolicy
         public var raw: [String]
 
         public init(
@@ -169,6 +190,7 @@ extension RSynchronizer {
             owner: String? = nil,
             exclude: [Exclude] = [],
             privilege: Privilege = .normal,
+            comparison: ComparisonPolicy = .checksum,
             raw: [String] = []
         ) {
             self.source = source
@@ -178,6 +200,7 @@ extension RSynchronizer {
             self.owner = owner
             self.exclude = exclude
             self.privilege = privilege
+            self.comparison = comparison
             self.raw = raw
         }
 
@@ -211,6 +234,10 @@ extension RSynchronizer {
 
             result.append(
                 contentsOf: privilege.arguments
+            )
+
+            result.append(
+                contentsOf: comparison.arguments
             )
 
             result.append(
