@@ -66,6 +66,40 @@ extension RSynchronizer {
         }
     }
 
+    public enum ComparisonPolicy: Sendable, Hashable {
+        case checksum
+        case quickCheck
+
+        public var arguments: [String] {
+            switch self {
+            case .checksum:
+                return [
+                    "--checksum",
+                ]
+
+            case .quickCheck:
+                return []
+            }
+        }
+    }
+
+    public enum MetadataPolicy: Sendable, Hashable {
+        case contentOnly
+        case preserve
+
+        public var arguments: [String] {
+            switch self {
+            case .contentOnly:
+                return [
+                    "--no-times",
+                ]
+
+            case .preserve:
+                return []
+            }
+        }
+    }
+
     public struct Exclude: Sendable, Hashable {
         public var pattern: String
 
@@ -88,35 +122,21 @@ extension RSynchronizer {
         ]
     }
 
-    public enum ComparisonPolicy: Sendable, Hashable {
-        case checksum
-        case quickCheck
-
-        public var arguments: [String] {
-            switch self {
-            case .checksum:
-                return [
-                    "--checksum",
-                ]
-
-            case .quickCheck:
-                return []
-            }
-        }
-    }
-
     public struct PlanOptions: Sendable, Hashable {
         public var exclude: [Exclude]
         public var comparison: ComparisonPolicy
+        public var metadata: MetadataPolicy
         public var raw: [String]
 
         public init(
             exclude: [Exclude] = Defaults.exclude,
             comparison: ComparisonPolicy = .checksum,
+            metadata: MetadataPolicy = .contentOnly,
             raw: [String] = []
         ) {
             self.exclude = exclude
             self.comparison = comparison
+            self.metadata = metadata
             self.raw = raw
         }
     }
@@ -180,6 +200,7 @@ extension RSynchronizer {
         public var exclude: [Exclude]
         public var privilege: Privilege
         public var comparison: ComparisonPolicy
+        public var metadata: MetadataPolicy
         public var raw: [String]
 
         public init(
@@ -191,6 +212,7 @@ extension RSynchronizer {
             exclude: [Exclude] = [],
             privilege: Privilege = .normal,
             comparison: ComparisonPolicy = .checksum,
+            metadata: MetadataPolicy = .contentOnly,
             raw: [String] = []
         ) {
             self.source = source
@@ -201,6 +223,7 @@ extension RSynchronizer {
             self.exclude = exclude
             self.privilege = privilege
             self.comparison = comparison
+            self.metadata = metadata
             self.raw = raw
         }
 
@@ -238,6 +261,10 @@ extension RSynchronizer {
 
             result.append(
                 contentsOf: comparison.arguments
+            )
+
+            result.append(
+                contentsOf: metadata.arguments
             )
 
             result.append(
