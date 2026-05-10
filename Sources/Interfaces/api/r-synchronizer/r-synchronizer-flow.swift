@@ -627,13 +627,18 @@ public extension RSynchronizer {
             let entry = pair.0
             let result = pair.1
 
+            let summary = Preflight.Parser.summary(
+                from: result
+            )
+            .normalized(
+                for: execution.plan
+            )
+
             return Preflight.CommandReport(
                 index: index,
                 entry: entry,
                 result: result,
-                summary: Preflight.Parser.summary(
-                    from: result
-                )
+                summary: summary
             )
         }
 
@@ -667,5 +672,32 @@ public extension RSynchronizer.Route {
             hooks: [],
             hostPermission: hostPermission
         )
+    }
+}
+
+private extension RSynchronizer.Preflight.Summary {
+    func normalized(
+        for plan: RSynchronizer.PlanOptions
+    ) -> Self {
+        switch plan.metadata {
+        case .preserve:
+            return self
+
+        case .contentOnly:
+            return .init(
+                items: items.filter {
+                    !$0.is_timestamp_only_metadata
+                }
+            )
+        }
+    }
+}
+
+private extension RSynchronizer.Preflight.Item {
+    var is_timestamp_only_metadata: Bool {
+        kind == .metadata
+            && reasons == [
+                .timestamp,
+            ]
     }
 }
