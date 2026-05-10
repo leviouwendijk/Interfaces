@@ -14,7 +14,7 @@ public extension RSynchronizer {
 
             public init(
                 flags: [String] = [
-                    "--itemize-changes",
+                    "--out-format=%i\t%l\t%n%L",
                     "--stats"
                 ],
                 output: OutputPolicy = .quiet
@@ -24,26 +24,377 @@ public extension RSynchronizer {
             }
         }
 
+        public enum Kind: String, Sendable, Hashable {
+            case created
+            case transfer
+            case metadata
+            case deleted
+            case other
+        }
+
+        public enum FileKind: String, Sendable, Hashable {
+            case file
+            case dir
+            case symlink
+            case device
+            case special
+            case unknown
+        }
+
+        public enum Reason: String, Sendable, Hashable {
+            case transfer
+            case checksum
+            case size
+            case timestamp
+            case permissions
+            case owner
+            case group
+            case uid
+            case acl
+            case xattr
+            case created
+            case deleted
+        }
+
+        public struct Item: Sendable, Hashable {
+            public var raw: String
+            public var code: String
+            public var path: String
+            public var size: Int?
+            public var kind: Kind
+            public var fileKind: FileKind
+            public var reasons: [Reason]
+
+            public init?(
+                _ line: String
+            ) {
+                let trimmed = line.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+
+                guard !trimmed.isEmpty else {
+                    return nil
+                }
+
+                if trimmed.hasPrefix("*deleting ") {
+                    self.raw = trimmed
+                    self.code = "*deleting"
+                    self.path = String(
+                        trimmed.dropFirst("*deleting ".count)
+                    )
+                    .trimmingCharacters(
+                        in: .whitespaces
+                    )
+                    self.size = nil
+                    self.kind = .deleted
+                    self.fileKind = .unknown
+                    self.reasons = [
+                        .deleted
+                    ]
+                    return
+                }
+
+                let parsed = Self.parts(
+                    trimmed
+                )
+
+                guard let parsed,
+                      Self.is_itemized(parsed.code)
+                else {
+                    return nil
+                }
+
+                self.raw = trimmed
+                self.code = parsed.code
+                self.path = parsed.path
+                self.size = parsed.size
+                self.fileKind = Self.file_kind(
+                    parsed.code
+                )
+                self.reasons = Self.reasons(
+                    parsed.code
+                )
+                self.kind = Self.kind(
+                    code: parsed.code,
+                    reasons: self.reasons
+                )
+            }
+
+            private static func parts(
+                _ line: String
+            ) -> (
+                code: String,
+                size: Int?,
+                path: String
+            )? {
+                let tabbed = line.split(
+                    separator: "\t",
+                    maxSplits: 2,
+                    omittingEmptySubsequences: false
+                )
+
+                if tabbed.count == 3 {
+                    return (
+                        code: String(tabbed[0]),
+                        size: Int(tabbed[1]),
+                        path: String(tabbed[2])
+                    )
+                }
+
+                guard let space = line.firstIndex(
+                    of: " "
+                ) else {
+                    return nil
+                }
+
+                let code = String(
+                    line[..<space]
+                )
+
+                let path = String(
+                    line[line.index(after: space)...]
+                )
+                .trimmingCharacters(
+                    in: .whitespaces
+                )
+
+                return (
+                    code: code,
+                    size: nil,
+                    path: path
+                )
+            }
+
+            private static func kind(
+                code: String,
+                reasons: [Reason]
+            ) -> Kind {
+                if code.contains("+++++++++") {
+                    return .created
+                }
+
+                guard let first = code.first else {
+                    return .other
+                }
+
+                if first == ">" || first == "<" {
+                    return .transfer
+                }
+
+                if !reasons.isEmpty {
+                    return .metadata
+                }
+
+                return .other
+            }
+
+            private static func file_kind(
+                _ code: String
+            ) -> FileKind {
+                guard code.count > 1 else {
+                    return .unknown
+                }
+
+                let index = code.index(
+                    after: code.startIndex
+                )
+
+                switch code[index] {
+                case "f":
+                    return .file
+
+                case "d":
+                    return .dir
+
+                case "L":
+                    return .symlink
+
+                case "D":
+                    return .device
+
+                case "S":
+                    return .special
+
+                default:
+                    return .unknown
+                }
+            }
+
+            private static func reasons(
+                _ code: String
+            ) -> [Reason] {
+                if code.contains("+++++++++") {
+                    return [
+                        .created
+                    ]
+                }
+
+                var out: [Reason] = []
+
+                if let first = code.first,
+                   first == ">" || first == "<" {
+                    out.append(
+                        .transfer
+                    )
+                }
+
+                let chars = Array(
+                    code
+                )
+
+                func has(
+                    _ offset: Int,
+                    _ character: Character
+                ) -> Bool {
+                    chars.indices.contains(offset)
+                        && chars[offset] == character
+                }
+
+                if has(2, "c") {
+                    out.append(
+                        .checksum
+                    )
+                }
+
+                if has(3, "s") {
+                    out.append(
+                        .size
+                    )
+                }
+
+                if has(4, "t") || has(4, "T") {
+                    out.append(
+                        .timestamp
+                    )
+                }
+
+                if has(5, "p") {
+                    out.append(
+                        .permissions
+                    )
+                }
+
+                if has(6, "o") {
+                    out.append(
+                        .owner
+                    )
+                }
+
+                if has(7, "g") {
+                    out.append(
+                        .group
+                    )
+                }
+
+                if has(8, "u") {
+                    out.append(
+                        .uid
+                    )
+                }
+
+                if has(9, "a") {
+                    out.append(
+                        .acl
+                    )
+                }
+
+                if has(10, "x") {
+                    out.append(
+                        .xattr
+                    )
+                }
+
+                return out
+            }
+
+            private static func is_itemized(
+                _ code: String
+            ) -> Bool {
+                guard code.count >= 11,
+                      let first = code.first
+                else {
+                    return false
+                }
+
+                switch first {
+                case ">", "<", "c", "h", ".", "*":
+                    return true
+
+                default:
+                    return false
+                }
+            }
+        }
+
         public struct Summary: Sendable, Hashable {
-            public var created: Int
-            public var updated: Int
-            public var deleted: Int
-            public var lines: [String]
+            public var items: [Item]
+
+            public var created: Int {
+                createdItems.count
+            }
+
+            public var updated: Int {
+                transferItems.count
+                    + metadataItems.count
+                    + otherItems.count
+            }
+
+            public var deleted: Int {
+                deletedItems.count
+            }
 
             public var changed: Int {
-                created + updated + deleted
+                items.count
+            }
+
+            public var lines: [String] {
+                items.map(\.raw)
+            }
+
+            public var createdItems: [Item] {
+                items.filter {
+                    $0.kind == .created
+                }
+            }
+
+            public var transferItems: [Item] {
+                items.filter {
+                    $0.kind == .transfer
+                }
+            }
+
+            public var metadataItems: [Item] {
+                items.filter {
+                    $0.kind == .metadata
+                }
+            }
+
+            public var deletedItems: [Item] {
+                items.filter {
+                    $0.kind == .deleted
+                }
+            }
+
+            public var otherItems: [Item] {
+                items.filter {
+                    $0.kind == .other
+                }
+            }
+
+            public var plannedBytes: Int {
+                items.reduce(into: 0) { total, item in
+                    guard item.kind == .created || item.kind == .transfer else {
+                        return
+                    }
+
+                    total += item.size ?? 0
+                }
             }
 
             public init(
-                created: Int = 0,
-                updated: Int = 0,
-                deleted: Int = 0,
-                lines: [String] = []
+                items: [Item] = []
             ) {
-                self.created = created
-                self.updated = updated
-                self.deleted = deleted
-                self.lines = lines
+                self.items = items
             }
         }
 
@@ -64,53 +415,14 @@ public extension RSynchronizer {
             public static func summary(
                 from output: String
             ) -> Summary {
-                var summary = Summary()
-
-                for line in output
+                let items = output
                     .split(separator: "\n", omittingEmptySubsequences: false)
-                    .map(String.init) {
-                    guard !line.isEmpty else {
-                        continue
-                    }
+                    .map(String.init)
+                    .compactMap(Item.init)
 
-                    if line.hasPrefix("*deleting ") {
-                        summary.deleted += 1
-                        summary.lines.append(line)
-                        continue
-                    }
-
-                    guard is_itemized(line) else {
-                        continue
-                    }
-
-                    summary.lines.append(line)
-
-                    if line.contains("+++++++++") {
-                        summary.created += 1
-                    } else {
-                        summary.updated += 1
-                    }
-                }
-
-                return summary
-            }
-
-            private static func is_itemized(
-                _ line: String
-            ) -> Bool {
-                guard line.count >= 11,
-                      let first = line.first
-                else {
-                    return false
-                }
-
-                switch first {
-                case ">", "<", "c", "h", ".", "*":
-                    return line.contains(" ")
-
-                default:
-                    return false
-                }
+                return Summary(
+                    items: items
+                )
             }
         }
     }
