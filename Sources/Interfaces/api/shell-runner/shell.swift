@@ -10,17 +10,53 @@ public struct Shell: Sendable {
         _ args: [String] = [],
         options: Options = .init()
     ) async throws -> Result {
+        // let (launcher, prefix) = exec.launchPathAndArgsPrefix
+        // let launchPath: String
+        // let argv: [String]
+        // if case .path = exec {
+        //     launchPath = programOrLauncher
+        //     argv = args
+        // } else {
+        //     launchPath = launcher
+        //     let command = quoteForShell(programOrLauncher, redactions: options.redactions)
+        //         + " " + args.map { quoteForShell($0, redactions: options.redactions) }.joined(separator: " ")
+        //     argv = prefix + [command]
+        // }
+
         let (launcher, prefix) = exec.launchPathAndArgsPrefix
         let launchPath: String
         let argv: [String]
-        if case .path = exec {
+
+        switch exec {
+        case .path:
             launchPath = programOrLauncher
             argv = args
-        } else {
+
+        case .env:
             launchPath = launcher
-            let command = quoteForShell(programOrLauncher, redactions: options.redactions)
-                + " " + args.map { quoteForShell($0, redactions: options.redactions) }.joined(separator: " ")
-            argv = prefix + [command]
+            argv = [
+                programOrLauncher,
+            ] + args
+
+        case .sh, .bash, .zsh:
+            launchPath = launcher
+
+            let command = quoteForShell(
+                programOrLauncher,
+                redactions: options.redactions
+            ) + " " + args.map {
+                quoteForShell(
+                    $0,
+                    redactions: options.redactions
+                )
+            }
+            .joined(
+                separator: " "
+            )
+
+            argv = prefix + [
+                command,
+            ]
         }
 
         let process = Process()
