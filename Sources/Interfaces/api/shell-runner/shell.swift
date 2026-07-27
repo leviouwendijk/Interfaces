@@ -95,12 +95,16 @@ public struct Shell: Sendable {
         // }
 
         if case .exited(let code) = status, !options.expectedExitCodes.contains(code) {
-            // Redact env values using the same redactions list
-            let redact = { (s: String) -> String in
-                options.redactions.reduce(s) { acc, needle in acc.replacingOccurrences(of: needle, with: "‹redacted›") }
+            // // Redact env values using the same redactions list
+            // let redact = { (s: String) -> String in
+            //     options.redactions.reduce(s) { acc, needle in acc.replacingOccurrences(of: needle, with: "‹redacted›") }
+            // }
+            // var envShown: [String:String] = [:]
+            // for (k, v) in env { envShown[k] = redact(v) }
+
+            let envShown = env.reduce(into: [String: String]()) { result, entry in
+                result[entry.key] = "<redacted>"
             }
-            var envShown: [String:String] = [:]
-            for (k, v) in env { envShown[k] = redact(v) }
 
             let ctx = RunContext(
                 exec: self.exec,
