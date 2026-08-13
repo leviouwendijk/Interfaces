@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-13T19:56:12Z",
-  "passed" : 3,
+  "generated_at" : "2026-08-13T19:59:31Z",
+  "passed" : 4,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.16598594188690186,
+      "duration_seconds" : 0.16667497158050537,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.12010800838470459,
+      "duration_seconds" : 0.11371397972106934,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
@@ -30,7 +30,7 @@
     },
     {
       "display_name" : "git-repo",
-      "duration_seconds" : 0.19635498523712158,
+      "duration_seconds" : 0.19825208187103271,
       "name" : "git-repo",
       "status" : "passed",
       "tags" : [
@@ -38,9 +38,20 @@
         "process",
         "regression"
       ]
+    },
+    {
+      "display_name" : "osa-script",
+      "duration_seconds" : 0.11216092109680176,
+      "name" : "osa-script",
+      "status" : "passed",
+      "tags" : [
+        "osascript",
+        "process",
+        "regression"
+      ]
     }
   ],
   "skipped" : 0,
   "title" : "Interfaces flow tests",
-  "total" : 3
+  "total" : 4
 }

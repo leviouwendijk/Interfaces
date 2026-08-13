@@ -59,14 +59,14 @@ public struct NumbersParser {
         )
     }
 
-    public func renderInvoice() async throws {
-        try await exporter.runAppleScriptExport()
+    public func renderInvoice() throws {
+        try exporter.runAppleScriptExport()
         try extractor.extractInvoice()
         try pdfFilter.convertRawNumbersPdfToInvoice()
     }
 
-    public func renderInvoiceData() async throws {
-        try await exporter.runAppleScriptExport()
+    public func renderInvoiceData() throws {
+        try exporter.runAppleScriptExport()
         try extractor.extractInvoice()
         try pdfFilter.convertRawNumbersPdfToInvoice()
     }

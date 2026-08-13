@@ -7,5 +7,6 @@ enum InterfacesFlowSuite: TestFlowRegistry {
         shellFlow,
         ptyFlow,
         gitRepoFlow,
+        osaScriptFlow,
     ]
 }

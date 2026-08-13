@@ -52,7 +52,7 @@ public struct NumbersParserExporter {
         )
     }
 
-    public func runAppleScriptExport() async throws {
+    public func runAppleScriptExport() throws {
         let src = numbersParserSanitize(source)
         let dst = numbersParserSanitize(destination)
         let inv = numbersParserSanitize(invoicePdf)
@@ -69,7 +69,7 @@ public struct NumbersParserExporter {
         let ghostty = numbersParserOsaScript(.ghostty, args)
         let responder = numbersParserOsaScript(.responder, args)
 
-        try await runOsascriptProcess(open)
+        try runOsascriptProcess(open)
         if adjustBeforeExporting {
             print("adjust target hit...")
 
@@ -87,18 +87,18 @@ public struct NumbersParserExporter {
             print("script")
             print(setInvoice)
 
-            try await runOsascriptProcess(setInvoice)
+            try runOsascriptProcess(setInvoice)
         }
         try removeExistingCSV()
-        try await runOsascriptProcess(csv)
-        try await runOsascriptProcess(pdf)
+        try runOsascriptProcess(csv)
+        try runOsascriptProcess(pdf)
         if self.responder {
-            try await runOsascriptProcess(responder)
+            try runOsascriptProcess(responder)
         } else {
-            try await runOsascriptProcess(ghostty)
+            try runOsascriptProcess(ghostty)
         }
         if close {
-            try await runOsascriptProcess(closeOp)
+            try runOsascriptProcess(closeOp)
         }
     }
 
