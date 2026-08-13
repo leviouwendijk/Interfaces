@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-13T15:59:42Z",
+  "generated_at" : "2026-08-13T19:44:03Z",
   "passed" : 2,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.031077027320861816,
+      "duration_seconds" : 0.17023897171020508,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.11521303653717041,
+      "duration_seconds" : 0.08458209037780762,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
