@@ -6,5 +6,6 @@ enum InterfacesFlowSuite: TestFlowRegistry {
     static let flows: [TestFlow] = [
         shellFlow,
         ptyFlow,
+        gitRepoFlow,
     ]
 }

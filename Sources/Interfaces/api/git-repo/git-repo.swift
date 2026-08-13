@@ -1,6 +1,7 @@
 import Darwin
 import Foundation
 import plate
+import Processes
 
 public enum GitRepo {
     @discardableResult
@@ -8,244 +9,136 @@ public enum GitRepo {
         _ cwd: URL,
         _ args: [String],
         timeout: TimeInterval = 60
-    ) async throws -> (code: Int32, out: String, err: String) {
-        try await withCheckedThrowingContinuation { continuation in
-            let process = Process()
-            process.executableURL = URL(
-                fileURLWithPath: "/usr/bin/env"
-            )
-            process.arguments = [
-                "git",
-            ] + args
-            process.currentDirectoryURL = cwd
+    ) async throws -> (
+        code: Int32,
+        out: String,
+        err: String
+    ) {
+        let output =
+            GitProcessOutputRecorder()
 
-            var environment = ProcessInfo.processInfo.environment
-            environment["GIT_TERMINAL_PROMPT"] = "0"
-            environment["GIT_EDITOR"] = "true"
-            environment["GIT_PAGER"] = "cat"
-            environment["LC_ALL"] = environment["LC_ALL"] ?? "C"
+        var environment:
+            [String: String?] = [
+                "GIT_TERMINAL_PROMPT": "0",
+                "GIT_EDITOR": "true",
+                "GIT_PAGER": "cat",
+            ]
 
-            process.environment = environment
-            process.standardInput = FileHandle.nullDevice
+        if ProcessInfo
+            .processInfo
+            .environment[
+                "LC_ALL"
+            ] == nil
+        {
+            environment[
+                "LC_ALL"
+            ] = "C"
+        }
 
-            let token = UUID().uuidString
-            let temporaryDirectory = FileManager.default.temporaryDirectory
-
-            let stdoutURL = temporaryDirectory.appendingPathComponent(
-                "gm-\(token)-stdout.txt"
-            )
-
-            let stderrURL = temporaryDirectory.appendingPathComponent(
-                "gm-\(token)-stderr.txt"
-            )
-
-            FileManager.default.createFile(
-                atPath: stdoutURL.path,
-                contents: nil
-            )
-
-            FileManager.default.createFile(
-                atPath: stderrURL.path,
-                contents: nil
-            )
-
-            let stdoutHandle: FileHandle
-            let stderrHandle: FileHandle
-
-            do {
-                stdoutHandle = try FileHandle(
-                    forWritingTo: stdoutURL
-                )
-
-                stderrHandle = try FileHandle(
-                    forWritingTo: stderrURL
-                )
-            } catch {
-                try? FileManager.default.removeItem(
-                    at: stdoutURL
-                )
-
-                try? FileManager.default.removeItem(
-                    at: stderrURL
-                )
-
-                continuation.resume(
-                    throwing: error
-                )
-
-                return
-            }
-
-            process.standardOutput = stdoutHandle
-            process.standardError = stderrHandle
-
-            final class State: @unchecked Sendable {
-                private let lock = NSLock()
-                private var didResume = false
-                private var didTimeOut = false
-
-                func markTimedOut() {
-                    lock.lock()
-
-                    defer {
-                        lock.unlock()
-                    }
-
-                    didTimeOut = true
-                }
-
-                func finish() -> (shouldResume: Bool, didTimeOut: Bool) {
-                    lock.lock()
-
-                    defer {
-                        lock.unlock()
-                    }
-
-                    guard !didResume else {
-                        return (
-                            false,
-                            didTimeOut
-                        )
-                    }
-
-                    didResume = true
-
-                    return (
-                        true,
-                        didTimeOut
+        let timeoutDuration =
+            Duration.nanoseconds(
+                Int64(
+                    max(
+                        0,
+                        timeout
                     )
-                }
-            }
-
-            let state = State()
-
-            @Sendable
-            func cleanup() {
-                try? stdoutHandle.close()
-                try? stderrHandle.close()
-
-                try? FileManager.default.removeItem(
-                    at: stdoutURL
+                    * 1_000_000_000
                 )
+            )
 
-                try? FileManager.default.removeItem(
-                    at: stderrURL
-                )
-            }
-
-            @Sendable
-            func readFile(
-                _ url: URL
-            ) -> String {
-                guard let data = try? Data(
-                    contentsOf: url
-                ) else {
-                    return ""
-                }
-
-                return String(
-                    data: data,
-                    encoding: .utf8
-                ) ?? ""
-            }
-
-            process.terminationHandler = { finishedProcess in
-                try? stdoutHandle.close()
-                try? stderrHandle.close()
-
-                let result = state.finish()
-
-                guard result.shouldResume else {
-                    cleanup()
-
-                    return
-                }
-
-                let out = readFile(
-                    stdoutURL
-                )
-
-                var err = readFile(
-                    stderrURL
-                )
-
-                if result.didTimeOut {
-                    let rendered = "git " + args.joined(
-                        separator: " "
-                    )
-
-                    let timeoutMessage = "Timed out after \(Int(timeout))s: \(rendered)"
-
-                    if err.trimmingCharacters(
-                        in: .whitespacesAndNewlines
-                    )
-                    .isEmpty {
-                        err = timeoutMessage
-                    } else {
-                        err += "\n\(timeoutMessage)"
-                    }
-                }
-
-                cleanup()
-
-                continuation.resume(
-                    returning: (
-                        Int32(
-                            finishedProcess.terminationStatus
+        do {
+            let result = try await ProcessRunner().run(
+                .init(
+                    executable: .path(
+                        "/usr/bin/env"
+                    ),
+                    arguments: [
+                        "git",
+                    ] + args,
+                    workingDirectory: cwd,
+                    environment:
+                        .inheritedUpdating(
+                            environment
                         ),
-                        out,
-                        err
+                    input: .none,
+                    io: .pipes,
+                    outputLimit: .max,
+                    timeout: timeoutDuration,
+                    terminationPolicy: .init(
+                        gracefulShutdownTimeout:
+                            .seconds(
+                                2
+                            ),
+                        isolateProcessGroup:
+                            true
                     )
-                )
-            }
-
-            do {
-                try process.run()
-            } catch {
-                let result = state.finish()
-
-                cleanup()
-
-                guard result.shouldResume else {
-                    return
+                ),
+                onStdout: { chunk in
+                    await output.appendStdout(
+                        chunk
+                    )
+                },
+                onStderr: { chunk in
+                    await output.appendStderr(
+                        chunk
+                    )
                 }
-
-                continuation.resume(
-                    throwing: error
-                )
-
-                return
-            }
-
-            DispatchQueue.global(
-                qos: .userInitiated
             )
-            .asyncAfter(
-                deadline: .now() + timeout
-            ) {
-                guard process.isRunning else {
-                    return
-                }
 
-                state.markTimedOut()
-                process.terminate()
-
-                DispatchQueue.global(
-                    qos: .userInitiated
-                )
-                .asyncAfter(
-                    deadline: .now() + 2
-                ) {
-                    guard process.isRunning else {
-                        return
-                    }
-
-                    kill(
-                        process.processIdentifier,
-                        SIGKILL
-                    )
-                }
+            return (
+                legacyTerminationStatus(
+                    result.exit
+                ),
+                result.stdoutText,
+                result.stderrText
+            )
+        } catch let error as ProcessError {
+            guard case .timedOut =
+                error
+            else {
+                throw error
             }
+
+            let captured =
+                await output.snapshot()
+
+            let out = String(
+                data: captured.stdout,
+                encoding: .utf8
+            ) ?? ""
+
+            var err = String(
+                data: captured.stderr,
+                encoding: .utf8
+            ) ?? ""
+
+            let rendered =
+                "git "
+                + args.joined(
+                    separator: " "
+                )
+
+            let timeoutMessage =
+                "Timed out after \(Int(timeout))s: \(rendered)"
+
+            if err.trimmingCharacters(
+                in:
+                    .whitespacesAndNewlines
+            )
+            .isEmpty {
+                err = timeoutMessage
+            } else {
+                err +=
+                    "\n\(timeoutMessage)"
+            }
+
+            return (
+                Int32(
+                    SIGTERM
+                ),
+                out,
+                err
+            )
         }
     }
 
@@ -254,7 +147,11 @@ public enum GitRepo {
         _ args: [String],
         timeout: TimeInterval = 60
     ) async throws -> String {
-        let (code, out, err) = try await git(
+        let (
+            code,
+            out,
+            err
+        ) = try await git(
             cwd,
             args,
             timeout: timeout
@@ -271,18 +168,51 @@ public enum GitRepo {
     }
 }
 
-// public enum GitRepo {
-//     @discardableResult
-//     public static func git(_ cwd: URL, _ args: [String]) async throws -> (code: Int32, out: String, err: String) {
-//         let res = try await sh(.zsh, "git", args, cwd: cwd)
-//         let out = res.stdoutText()
-//         let err = res.stderrText()
-//         return (Int32(res.exitCode ?? 0), out, err)
-//     }
+private extension GitRepo {
+    static func legacyTerminationStatus(
+        _ exit: ProcessExit
+    ) -> Int32 {
+        switch exit {
+        case .exited(
+            let code
+        ):
+            return code
 
-//     public static func gitOut(_ cwd: URL, _ args: [String]) async throws -> String {
-//         let (code, out, err) = try await git(cwd, args)
-//         guard code == 0 else { throw RemoteError.processFailed(code, err) }
-//         return out
-//     }
-// }
+        case .signaled(
+            let signal
+        ):
+            return signal
+        }
+    }
+}
+
+private actor GitProcessOutputRecorder {
+    private var stdout = Data()
+    private var stderr = Data()
+
+    func appendStdout(
+        _ chunk: Data
+    ) {
+        stdout.append(
+            chunk
+        )
+    }
+
+    func appendStderr(
+        _ chunk: Data
+    ) {
+        stderr.append(
+            chunk
+        )
+    }
+
+    func snapshot() -> (
+        stdout: Data,
+        stderr: Data
+    ) {
+        (
+            stdout,
+            stderr
+        )
+    }
+}

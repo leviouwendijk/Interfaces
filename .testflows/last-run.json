@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-13T19:44:03Z",
-  "passed" : 2,
+  "generated_at" : "2026-08-13T19:56:12Z",
+  "passed" : 3,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.17023897171020508,
+      "duration_seconds" : 0.16598594188690186,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.08458209037780762,
+      "duration_seconds" : 0.12010800838470459,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
@@ -27,9 +27,20 @@
         "pty",
         "regression"
       ]
+    },
+    {
+      "display_name" : "git-repo",
+      "duration_seconds" : 0.19635498523712158,
+      "name" : "git-repo",
+      "status" : "passed",
+      "tags" : [
+        "git",
+        "process",
+        "regression"
+      ]
     }
   ],
   "skipped" : 0,
   "title" : "Interfaces flow tests",
-  "total" : 2
+  "total" : 3
 }
