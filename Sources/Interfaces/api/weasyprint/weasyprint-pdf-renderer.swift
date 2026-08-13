@@ -1,57 +1,122 @@
 import Foundation
 import plate
+import Processes
 
-public protocol PDFRenderable: Sendable {
-    func pdf(html: URL, css: URL, destination: String) throws
+public protocol PDFRenderable:
+    Sendable
+{
+    func pdf(
+        html: URL,
+        css: URL,
+        destination: String
+    ) async throws
 }
 
-public struct WeasyPrintRenderer: PDFRenderable, Sendable {
+public struct WeasyPrintRenderer:
+    PDFRenderable,
+    Sendable
+{
     private let weasyBinaryPath: String
+
     public let encoding: String.Encoding
-    
+
     public init(
         weasyBinaryPath: String = "/opt/homebrew/bin/weasyprint",
         encoding: String.Encoding = .utf8
     ) {
-        self.weasyBinaryPath = weasyBinaryPath
-        self.encoding = encoding
+        self.weasyBinaryPath =
+            weasyBinaryPath
+
+        self.encoding =
+            encoding
     }
-    
-    public func pdf(html: URL, css: URL, destination: String) throws {
-        let fm = FileManager.default
-        guard fm.fileExists(atPath: html.path) else {
-            throw PDFGenerationError.htmlFileMissing(html)
+
+    public func pdf(
+        html: URL,
+        css: URL,
+        destination: String
+    ) async throws {
+        let fileManager =
+            FileManager.default
+
+        guard fileManager.fileExists(
+            atPath: html.path
+        ) else {
+            throw PDFGenerationError.htmlFileMissing(
+                html
+            )
         }
-        guard fm.fileExists(atPath: css.path) else {
-            throw PDFGenerationError.cssFileMissing(css)
+
+        guard fileManager.fileExists(
+            atPath: css.path
+        ) else {
+            throw PDFGenerationError.cssFileMissing(
+                css
+            )
         }
-        
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: weasyBinaryPath)
-        process.arguments = [
-            html.path,
-            destination,
-            "--stylesheet", css.path
-        ]
-        
-        let pipe = Pipe()
-        process.standardOutput = pipe
-        process.standardError = pipe
-        
+
+        let result: ProcessResult
+
         do {
-            try process.run()
+            result = try await ProcessRunner().run(
+                .init(
+                    executable: .path(
+                        weasyBinaryPath
+                    ),
+                    arguments: [
+                        html.path,
+                        destination,
+                        "--stylesheet",
+                        css.path,
+                    ],
+                    outputLimit: .max
+                )
+            )
+        } catch is CancellationError {
+            throw CancellationError()
         } catch {
-            throw PDFGenerationError.cannotRunProcess(underlying: error)
+            throw PDFGenerationError.cannotRunProcess(
+                underlying: error
+            )
         }
-        
-        process.waitUntilExit()
-        
-        let status = process.terminationStatus
-        if status != 0 {
-            let data = pipe.fileHandleForReading.readDataToEndOfFile()
-            let output = String(data: data, encoding: encoding) ?? "<no output>"
-            throw PDFGenerationError.processFailed(exitCode: status, output: output)
+
+        switch result.exit {
+        case .exited(0):
+            return
+
+        case .exited(
+            let code
+        ):
+            throw PDFGenerationError.processFailed(
+                exitCode: code,
+                output: processOutput(
+                    result
+                )
+            )
+
+        case .signaled(
+            let signal
+        ):
+            throw PDFGenerationError.processFailed(
+                exitCode: signal,
+                output: processOutput(
+                    result
+                )
+            )
         }
+    }
+
+    private func processOutput(
+        _ result: ProcessResult
+    ) -> String {
+        let data =
+            result.stdout
+            + result.stderr
+
+        return String(
+            data: data,
+            encoding: encoding
+        ) ?? "<no output>"
     }
 }
 
@@ -60,27 +125,54 @@ extension String {
         css: CSSPageSetting = CSSPageSetting(),
         destination: String,
         encoding: String.Encoding = .utf8
-    ) throws {
-        let htmlTemp = try self.tempFile(fileExtension: "html", encoding: encoding)
+    ) async throws {
+        let htmlTemp = try self.tempFile(
+            fileExtension: "html",
+            encoding: encoding
+        )
 
-        let cssString = css.css()
-        let cssTemp = try cssString.tempFile(fileExtension: "css")
+        let cssString =
+            css.css()
 
-        let renderer = WeasyPrintRenderer(encoding: encoding)
-        try renderer.pdf(html: htmlTemp, css: cssTemp, destination: destination)
+        let cssTemp = try cssString.tempFile(
+            fileExtension: "css"
+        )
+
+        let renderer = WeasyPrintRenderer(
+            encoding: encoding
+        )
+
+        try await renderer.pdf(
+            html: htmlTemp,
+            css: cssTemp,
+            destination: destination
+        )
     }
 
     public func weasyPathPDF(
         css: CSSPageSetting = CSSPageSetting(),
         destination: String,
         encoding: String.Encoding = .utf8
-    ) throws {
-        let htmlURL = URL(filePath: self)
+    ) async throws {
+        let htmlURL = URL(
+            filePath: self
+        )
 
-        let cssString = css.css()
-        let cssTemp = try cssString.tempFile(fileExtension: "css")
+        let cssString =
+            css.css()
 
-        let renderer = WeasyPrintRenderer(encoding: encoding)
-        try renderer.pdf(html: htmlURL, css: cssTemp, destination: destination)
+        let cssTemp = try cssString.tempFile(
+            fileExtension: "css"
+        )
+
+        let renderer = WeasyPrintRenderer(
+            encoding: encoding
+        )
+
+        try await renderer.pdf(
+            html: htmlURL,
+            css: cssTemp,
+            destination: destination
+        )
     }
 }

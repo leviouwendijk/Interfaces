@@ -16,7 +16,7 @@ public struct WeasyActor {
         self.destination = destination
     }
 
-    public func pdf() async throws {
+    public func pdf() throws {
         let htmlRaw = try html.content()
         let converter = StringTemplateConverter(
             text: htmlRaw,
@@ -24,8 +24,6 @@ public struct WeasyActor {
         )
 
         let html = converter.replace()
-        try await html.weasyPDF(
-            destination: destination
-        )
+        try html.weasyPDF(destination: destination)
     }
 }
