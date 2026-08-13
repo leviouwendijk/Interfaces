@@ -1,142 +1,120 @@
+import Dispatch
 import Foundation
-import Darwin
+import Processes
 
-public struct PTYResult: Sendable {
+public struct PTYResult:
+    Sendable
+{
     public let exitCode: Int32
-    public let stdout: Data   // merged stdout+stderr
-    public let stderr: Data   // empty (kept for symmetry)
+    public let stdout: Data
+    public let stderr: Data
 }
 
-public enum PTYError: Error {
-    case openPTYFailed(errno: Int32)
-    case spawnFailed(errno: Int32)
+public enum PTYError:
+    Error
+{
+    case openPTYFailed(
+        errno: Int32
+    )
+
+    case spawnFailed(
+        errno: Int32
+    )
 }
 
 @discardableResult
 public func runPTY(
     _ launchPath: String,
     _ args: [String],
-    env: [String:String]? = nil,
+    env: [String: String]? = nil,
     cwd: URL? = nil,
     onChunk: (@Sendable (Data) -> Void)? = nil
 ) throws -> PTYResult {
-    var master: Int32 = -1
-    var slave:  Int32 = -1
-    guard openpty(&master, &slave, nil, nil, nil) == 0 else {
-        throw PTYError.openPTYFailed(errno: errno)
-    }
+    let environment: ProcessEnvironment
 
-    // argv (stable C strings)
-    var cargv: [UnsafeMutablePointer<CChar>?] = ([launchPath] + args).map { strdup($0) }
-    cargv.append(nil)
-    defer { cargv.forEach { if let p = $0 { free(p) } } }
-
-    // envp (inherit if nil)
-    var cenv: [UnsafeMutablePointer<CChar>?] = []
     if let env {
-        for (k, v) in env { cenv.append(strdup("\(k)=\(v)")) }
-        cenv.append(nil)
+        environment = .custom(
+            env
+        )
     } else {
-        cenv = [nil]
-    }
-    defer { cenv.forEach { if let p = $0 { free(p) } } }
-
-    // file actions
-    var fa: posix_spawn_file_actions_t? = nil
-    posix_spawn_file_actions_init(&fa)
-    defer { posix_spawn_file_actions_destroy(&fa) }
-
-    posix_spawn_file_actions_adddup2(&fa, slave, STDIN_FILENO)
-    posix_spawn_file_actions_adddup2(&fa, slave, STDOUT_FILENO)
-    posix_spawn_file_actions_adddup2(&fa, slave, STDERR_FILENO)
-    posix_spawn_file_actions_addclose(&fa, slave)
-
-    if let dir = cwd?.path {
-        _ = dir.withCString { cstr in
-            posix_spawn_file_actions_addchdir_np(&fa, cstr)
-        }
+        environment = .custom(
+            [:]
+        )
     }
 
-    // attrs
-    var attr: posix_spawnattr_t? = nil
-    posix_spawnattr_init(&attr)
-    defer { posix_spawnattr_destroy(&attr) }
+    let specification = ProcessSpecification(
+        executable: .path(
+            launchPath
+        ),
+        arguments: args,
+        workingDirectory: cwd,
+        environment: environment,
+        io: .pseudoTerminal,
+        outputLimit: .max
+    )
 
-    // spawn
-    var pid: pid_t = 0
-    let spawnErr = cargv.withUnsafeMutableBufferPointer { argvPtr in
-        cenv.withUnsafeMutableBufferPointer { envPtr in
-            posix_spawn(
-                &pid,
-                launchPath,
-                &fa,
-                &attr,
-                argvPtr.baseAddress,
-                envPtr.baseAddress
+    let bridge = PTYCompatibilityBridge()
+
+    Task.detached {
+        do {
+            let result = try await ProcessRunner().run(
+                specification,
+                onStdout: { chunk in
+                    onChunk?(
+                        chunk
+                    )
+                }
+            )
+
+            bridge.complete(
+                .success(
+                    result
+                )
+            )
+        } catch {
+            bridge.complete(
+                .failure(
+                    error
+                )
             )
         }
     }
 
-    // parent: no need for slave fd
-    close(slave)
+    let result: ProcessResult
 
-    guard spawnErr == 0 else {
-        close(master)
-        throw PTYError.spawnFailed(errno: spawnErr)
+    do {
+        result = try bridge.wait()
+    } catch ProcessError.pseudoTerminalOpenFailed(
+        let error
+    ) {
+        throw PTYError.openPTYFailed(
+            errno: error
+        )
+    } catch ProcessError.processSpawnFailed(
+        let error
+    ) {
+        throw PTYError.spawnFailed(
+            errno: error
+        )
     }
 
-    // ── stream from PTY master (non-blocking + poll for snappy chunks)
-    let masterFD = master
+    let exitCode: Int32
 
-    // 1) make PTY master non-blocking
-    let curFlags = fcntl(masterFD, F_GETFL, 0)
-    _ = fcntl(masterFD, F_SETFL, curFlags | O_NONBLOCK)
+    switch result.exit {
+    case .exited(let code):
+        exitCode = code
 
-    // 2) read loop
-    var buffer = Data()
-    var readBuf = [UInt8](repeating: 0, count: 8192)
-    var pfd = pollfd(fd: masterFD, events: Int16(POLLIN), revents: 0)
-
-    var done = false
-    while !done {
-        // 50 ms timeout to keep UI responsive
-        let r = poll(&pfd, 1, 50)
-        if r < 0 {
-            if errno == EINTR { continue }       // interrupted -> retry
-            break                                 // real error -> stop
-        }
-        if r == 0 { continue }                    // timeout, no data yet
-
-        if (pfd.revents & Int16(POLLIN)) != 0 {
-            // drain all available bytes
-            while true {
-                let n = read(masterFD, &readBuf, readBuf.count)
-                if n > 0 {
-                    let chunk = Data(bytes: readBuf, count: n)
-                    buffer.append(chunk)
-                    onChunk?(chunk)
-                    _ = Task { await Task.yield() }   // let printers run
-                } else if n == 0 {
-                    done = true                        // EOF
-                    break
-                } else {
-                    if errno == EAGAIN || errno == EWOULDBLOCK {
-                        break                          // no more bytes for now
-                    } else {
-                        done = true                    // other error
-                        break
-                    }
-                }
-            }
-        }
+    case .signaled(let signal):
+        exitCode =
+            128
+            + signal
     }
 
-    // wait + exit code
-    var status: Int32 = 0
-    _ = waitpid(pid, &status, 0)
-    let exit: Int32 = (status & 0x7F) == 0 ? ((status >> 8) & 0xFF) : (128 + (status & 0x7F))
-
-    return PTYResult(exitCode: exit, stdout: buffer, stderr: Data())
+    return PTYResult(
+        exitCode: exitCode,
+        stdout: result.stdout,
+        stderr: Data()
+    )
 }
 
 @discardableResult
@@ -152,7 +130,54 @@ public func runPTYPassthrough(
         env: env,
         cwd: cwd,
         onChunk: { chunk in
-            FileHandle.standardOutput.write(chunk)
+            FileHandle.standardOutput.write(
+                chunk
+            )
         }
     )
+}
+
+private final class PTYCompatibilityBridge:
+    @unchecked Sendable
+{
+    private let lock = NSLock()
+    private let semaphore = DispatchSemaphore(
+        value: 0
+    )
+
+    private var result:
+        Result<ProcessResult, any Error>?
+
+    func complete(
+        _ result: Result<
+            ProcessResult,
+            any Error
+        >
+    ) {
+        lock.lock()
+
+        self.result = result
+
+        lock.unlock()
+
+        semaphore.signal()
+    }
+
+    func wait() throws -> ProcessResult {
+        semaphore.wait()
+
+        lock.lock()
+
+        let result = self.result
+
+        lock.unlock()
+
+        guard let result else {
+            preconditionFailure(
+                "PTY compatibility execution completed without a result."
+            )
+        }
+
+        return try result.get()
+    }
 }

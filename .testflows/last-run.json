@@ -1,0 +1,35 @@
+{
+  "failed" : 0,
+  "failed_names" : [
+
+  ],
+  "generated_at" : "2026-08-13T15:59:42Z",
+  "passed" : 2,
+  "results" : [
+    {
+      "display_name" : "shell",
+      "duration_seconds" : 0.031077027320861816,
+      "name" : "shell",
+      "status" : "passed",
+      "tags" : [
+        "process",
+        "regression",
+        "shell"
+      ]
+    },
+    {
+      "display_name" : "pty",
+      "duration_seconds" : 0.11521303653717041,
+      "name" : "pty",
+      "status" : "passed",
+      "tags" : [
+        "process",
+        "pty",
+        "regression"
+      ]
+    }
+  ],
+  "skipped" : 0,
+  "title" : "Interfaces flow tests",
+  "total" : 2
+}

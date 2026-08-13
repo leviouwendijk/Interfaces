@@ -19,6 +19,12 @@ let package = Package(
                 "gm",
             ]
         ),
+        .executable(
+            name: "itest",
+            targets: [
+                "InterfacesTestFlows",
+            ]
+        ),
     ],
     dependencies: [
         .package(
@@ -45,6 +51,14 @@ let package = Package(
             url: "https://github.com/leviouwendijk/Difference.git",
             branch: "master"
         ),
+        .package(
+            url: "https://github.com/leviouwendijk/Processes.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/TestFlows.git",
+            branch: "master"
+        ),
     ],
     targets: [
         .target(
@@ -55,6 +69,7 @@ let package = Package(
                 .product(name: "Indentation", package: "Indentation"),
                 .product(name: "Arguments", package: "Arguments"),
                 .product(name: "Difference", package: "Difference"),
+                .product(name: "Processes", package: "Processes"),
             ],
             resources: [
                 .process("Resources")
@@ -68,6 +83,16 @@ let package = Package(
                 .product(name: "Arguments", package: "Arguments"),
             ],
             path: "Sources/GitManagerCLI"
+        ),
+        .executableTarget(
+            name: "InterfacesTestFlows",
+            dependencies: [
+                "Interfaces",
+                .product(
+                    name: "TestFlows",
+                    package: "TestFlows"
+                ),
+            ]
         ),
     ]
 )
