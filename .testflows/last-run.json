@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-13T20:33:55Z",
+  "generated_at" : "2026-08-13T20:47:42Z",
   "passed" : 5,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.16788899898529053,
+      "duration_seconds" : 0.2092289924621582,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.1171720027923584,
+      "duration_seconds" : 0.10284507274627686,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
@@ -30,7 +30,7 @@
     },
     {
       "display_name" : "git-repo",
-      "duration_seconds" : 0.21504998207092285,
+      "duration_seconds" : 0.19221794605255127,
       "name" : "git-repo",
       "status" : "passed",
       "tags" : [
@@ -41,7 +41,7 @@
     },
     {
       "display_name" : "osa-script",
-      "duration_seconds" : 0.09818494319915771,
+      "duration_seconds" : 0.11356997489929199,
       "name" : "osa-script",
       "status" : "passed",
       "tags" : [
@@ -52,7 +52,7 @@
     },
     {
       "display_name" : "weasyprint",
-      "duration_seconds" : 0.24776101112365723,
+      "duration_seconds" : 0.4664299488067627,
       "name" : "weasyprint",
       "status" : "passed",
       "tags" : [

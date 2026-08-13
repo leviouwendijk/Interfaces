@@ -21,7 +21,8 @@ public struct Shell: Sendable {
             argv
         ) = loweredInvocation(
             programOrLauncher,
-            args
+            args,
+            options: options
         )
 
         let environment = resolvedEnvironment(
@@ -241,7 +242,8 @@ public struct Shell: Sendable {
 private extension Shell {
     func loweredInvocation(
         _ programOrLauncher: String,
-        _ args: [String]
+        _ args: [String],
+        options: Options
     ) -> (
         launchPath: String,
         argv: [String]
@@ -272,12 +274,18 @@ private extension Shell {
              .zsh:
             let command =
                 quoteForShell(
-                    programOrLauncher
+                    programOrLauncher,
+                    redactions:
+                        options
+                            .redactions
                 )
                 + " "
                 + args.map {
                     quoteForShell(
-                        $0
+                        $0,
+                        redactions:
+                            options
+                                .redactions
                     )
                 }
                 .joined(
@@ -360,14 +368,30 @@ private extension Shell {
     }
 
     func quoteForShell(
-        _ value: String
+        _ value: String,
+        redactions: [String]
     ) -> String {
-        if value.isEmpty {
+        let redacted =
+            redactions.reduce(
+                value
+            ) {
+                accumulated,
+                needle in
+
+                accumulated
+                    .replacingOccurrences(
+                        of: needle,
+                        with:
+                            "‹redacted›"
+                    )
+            }
+
+        if redacted.isEmpty {
             return "''"
         }
 
         return "'"
-            + value
+            + redacted
                 .replacingOccurrences(
                     of: "'",
                     with:

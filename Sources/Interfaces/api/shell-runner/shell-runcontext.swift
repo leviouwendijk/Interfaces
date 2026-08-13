@@ -17,8 +17,47 @@ public extension Shell {
         public let pid: pid_t
 
         @inlinable public var commandLine: String {
-            let q: (String) -> String = { s in s.isEmpty ? "''" : "'" + s.replacingOccurrences(of: "'", with: "'\"'\"'") + "'" }
-            return ([launchPath] + argv).map(q).joined(separator: " ")
+            let quote: (String) -> String = {
+                value in
+
+                value.isEmpty
+                    ? "''"
+                    : "'"
+                        + value.replacingOccurrences(
+                            of: "'",
+                            with: "'\"'\"'"
+                        )
+                        + "'"
+            }
+
+            let rendered = (
+                [
+                    launchPath,
+                ] + argv
+            )
+            .map(
+                quote
+            )
+            .joined(
+                separator: " "
+            )
+
+            return redactions.reduce(
+                rendered
+            ) {
+                accumulated,
+                needle in
+
+                guard !needle.isEmpty else {
+                    return accumulated
+                }
+
+                return accumulated
+                    .replacingOccurrences(
+                        of: needle,
+                        with: "‹redacted›"
+                    )
+            }
         }
     }
 }
