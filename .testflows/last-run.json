@@ -1,14 +1,14 @@
 {
-  "failed" : 0,
+  "failed" : 1,
   "failed_names" : [
-
+    "git-manager-diff"
   ],
-  "generated_at" : "2026-08-13T20:47:42Z",
+  "generated_at" : "2026-08-25T18:51:11Z",
   "passed" : 5,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.2092289924621582,
+      "duration_seconds" : 0.25230300426483154,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.10284507274627686,
+      "duration_seconds" : 0.14136195182800293,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
@@ -30,7 +30,7 @@
     },
     {
       "display_name" : "git-repo",
-      "duration_seconds" : 0.19221794605255127,
+      "duration_seconds" : 0.24693500995635986,
       "name" : "git-repo",
       "status" : "passed",
       "tags" : [
@@ -40,8 +40,20 @@
       ]
     },
     {
+      "display_name" : "git-manager-diff",
+      "duration_seconds" : 0.2937260866165161,
+      "name" : "git-manager-diff",
+      "status" : "failed",
+      "tags" : [
+        "diff",
+        "git",
+        "observe",
+        "regression"
+      ]
+    },
+    {
       "display_name" : "osa-script",
-      "duration_seconds" : 0.11356997489929199,
+      "duration_seconds" : 0.2258930206298828,
       "name" : "osa-script",
       "status" : "passed",
       "tags" : [
@@ -52,7 +64,7 @@
     },
     {
       "display_name" : "weasyprint",
-      "duration_seconds" : 0.4664299488067627,
+      "duration_seconds" : 0.4533669948577881,
       "name" : "weasyprint",
       "status" : "passed",
       "tags" : [
@@ -65,5 +77,5 @@
   ],
   "skipped" : 0,
   "title" : "Interfaces flow tests",
-  "total" : 5
+  "total" : 6
 }
