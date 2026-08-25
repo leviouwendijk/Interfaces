@@ -457,8 +457,13 @@ private struct GitManagerDiffFixture {
         _ relativePath: String,
         _ content: String
     ) throws {
+        let normalizedContent =
+            content.hasSuffix("\n")
+            ? content
+            : content + "\n"
+
         try Data(
-            content.utf8
+            normalizedContent.utf8
         ).write(
             to:
                 root.appendingPathComponent(
