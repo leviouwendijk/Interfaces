@@ -2,12 +2,50 @@ import Foundation
 
 public enum GitManagerAction {
     @discardableResult
-    public static func save(
+    public static func prepareCommit(
+        paths: [String] = [
+            ".",
+        ],
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
+        )
+    ) async throws -> String {
+        let paths = paths
+            .map {
+                $0.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+            }
+            .filter {
+                !$0.isEmpty
+            }
+
+        guard !paths.isEmpty else {
+            throw GitManagerError.unsafeSync(
+                "Commit preparation requires at least one path."
+            )
+        }
+
+        let root = try await requireRoot(
+            at: directory
+        )
+
+        return try await GitRepo.gitOut(
+            root,
+            [
+                "add",
+                "--",
+            ] + paths
+        )
+    }
+
+    @discardableResult
+    public static func commitPrepared(
         message: String,
         at directory: URL = URL(
             fileURLWithPath: FileManager.default.currentDirectoryPath
         )
-    ) async throws -> [String] {
+    ) async throws -> String {
         let message = message.trimmingCharacters(
             in: .whitespacesAndNewlines
         )
@@ -20,30 +58,32 @@ public enum GitManagerAction {
             at: directory
         )
 
-        var outputs: [String] = []
-
-        outputs.append(
-            try await GitRepo.gitOut(
-                root,
-                [
-                    "add",
-                    ".",
-                ]
-            )
+        return try await GitRepo.gitOut(
+            root,
+            [
+                "commit",
+                "-m",
+                message,
+            ]
         )
+    }
 
-        outputs.append(
-            try await GitRepo.gitOut(
-                root,
-                [
-                    "commit",
-                    "-m",
-                    message,
-                ]
-            )
+    @discardableResult
+    public static func save(
+        message: String,
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
         )
-
-        return outputs
+    ) async throws -> [String] {
+        [
+            try await prepareCommit(
+                at: directory
+            ),
+            try await commitPrepared(
+                message: message,
+                at: directory
+            ),
+        ]
     }
 
     @discardableResult
@@ -117,6 +157,62 @@ public enum GitManagerAction {
                 upstream.remote,
                 upstream.branch,
             ]
+        )
+    }
+
+    @discardableResult
+    public static func push(
+        remote: String,
+        branch: String,
+        setUpstream: Bool = true,
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
+        )
+    ) async throws -> String {
+        let remote = remote.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        let branch = branch.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard !remote.isEmpty else {
+            throw GitManagerError.unsafeSync(
+                "Push remote cannot be blank."
+            )
+        }
+
+        guard !branch.isEmpty else {
+            throw GitManagerError.unsafeSync(
+                "Push branch cannot be blank."
+            )
+        }
+
+        let root = try await requireRoot(
+            at: directory
+        )
+
+        var arguments = [
+            "push",
+        ]
+
+        if setUpstream {
+            arguments.append(
+                "-u"
+            )
+        }
+
+        arguments.append(
+            contentsOf: [
+                remote,
+                branch,
+            ]
+        )
+
+        return try await GitRepo.gitOut(
+            root,
+            arguments
         )
     }
 
