@@ -124,13 +124,56 @@ public enum GitManagerAction {
             root
         )
 
+        return try await pull(
+            remote: upstream.remote,
+            branch: upstream.branch,
+            at: root
+        )
+    }
+
+    @discardableResult
+    public static func pull(
+        remote: String,
+        branch: String,
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
+        )
+    ) async throws -> String {
+        let remote = remote.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        let branch = branch.trimmingCharacters(
+            in: .whitespacesAndNewlines
+        )
+
+        guard !remote.isEmpty,
+              !remote.hasPrefix("-")
+        else {
+            throw GitManagerError.unsafeSync(
+                "Pull remote must be a non-option Git remote name."
+            )
+        }
+
+        guard !branch.isEmpty,
+              !branch.hasPrefix("-")
+        else {
+            throw GitManagerError.unsafeSync(
+                "Pull branch must be a non-option Git branch or ref."
+            )
+        }
+
+        let root = try await requireRoot(
+            at: directory
+        )
+
         return try await GitRepo.gitOut(
             root,
             [
                 "pull",
                 "--ff-only",
-                upstream.remote,
-                upstream.branch,
+                remote,
+                branch,
             ]
         )
     }
