@@ -243,7 +243,7 @@ public enum GitManagerWorktree {
             )
         }
 
-        let baseCommit = try await commit(
+        let baseCommit = try await GitRepo.resolveCommit(
             request.baseRef,
             at: request.repository
         )
@@ -504,23 +504,6 @@ public enum GitManagerWorktree {
 }
 
 private extension GitManagerWorktree {
-    static func commit(
-        _ ref: String,
-        at repository: URL
-    ) async throws -> String {
-        try await GitRepo.gitOut(
-            repository,
-            [
-                "rev-parse",
-                "--verify",
-                "\(ref)^{commit}",
-            ]
-        )
-        .trimmingCharacters(
-            in: .whitespacesAndNewlines
-        )
-    }
-
     static func requireValidBranch(
         _ branch: String,
         at repository: URL

@@ -7,6 +7,7 @@ enum InterfacesFlowSuite: TestFlowRegistry {
         shellFlow,
         ptyFlow,
         gitRepoFlow,
+        gitRepoAcquisitionFlow,
         gitManagerDiffFlow,
         gitManagerWorktreeFlow,
         gitManagerIntegrationPlanFlow,
