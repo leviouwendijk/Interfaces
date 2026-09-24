@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public enum GitManagerDiffScope:
     String,
     Sendable,
@@ -47,6 +50,7 @@ public struct GitManagerDiffRequest:
     }
 }
 
+@JSONSchema
 public struct GitManagerDiffSection:
     Sendable,
     Codable,
@@ -79,6 +83,7 @@ public struct GitManagerDiffSection:
     }
 }
 
+@JSONSchema
 public struct GitManagerDiffResult:
     Sendable,
     Codable,

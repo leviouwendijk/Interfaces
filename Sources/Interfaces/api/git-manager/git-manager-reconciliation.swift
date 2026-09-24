@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public struct GitManagerReconciliationResult: Sendable, Codable, Hashable {
     public let state: GitManagerRepositoryState
     public let trackedMatchesUpstream: Bool?
@@ -22,12 +25,14 @@ public struct GitManagerReconciliationResult: Sendable, Codable, Hashable {
     }
 }
 
+@JSONSchema
 public enum GitManagerReconciliationAppliedAction: String, Sendable, Codable, Hashable {
     case pull
     case push
     case hardResetToUpstream = "hard-reset-to-upstream"
 }
 
+@JSONSchema
 public enum GitManagerReconciliationRecommendation: String, Sendable, Codable, Hashable {
     case pull
     case push

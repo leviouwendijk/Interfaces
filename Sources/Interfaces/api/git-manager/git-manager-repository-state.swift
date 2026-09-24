@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public struct GitManagerRepositoryState: Sendable, Codable, Hashable {
     public let directory: URL
     public let root: URL?

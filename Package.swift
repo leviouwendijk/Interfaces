@@ -1,4 +1,4 @@
-// swift-tools-version: 6.1
+// swift-tools-version: 6.2
 // The swift-tools-version declares the minimum version of Swift required to build this package.
 
 import PackageDescription
@@ -36,6 +36,14 @@ let package = Package(
             branch: "master"
         ),
         .package(
+            url: "https://github.com/leviouwendijk/Schema.git",
+            branch: "master"
+        ),
+        .package(
+            url: "https://github.com/leviouwendijk/Macros.git",
+            branch: "master"
+        ),
+        .package(
             url: "https://github.com/leviouwendijk/Indentation.git",
             branch: "master"
         ),
@@ -66,6 +74,8 @@ let package = Package(
             dependencies: [
                 .product(name: "plate", package: "plate"),
                 .product(name: "Primitives", package: "Primitives"),
+                .product(name: "Schema", package: "Schema"),
+                .product(name: "Macros", package: "Macros"),
                 .product(name: "Indentation", package: "Indentation"),
                 .product(name: "Arguments", package: "Arguments"),
                 .product(name: "Difference", package: "Difference"),
@@ -96,3 +106,22 @@ let package = Package(
         ),
     ]
 )
+
+for target in package.targets {
+    switch target.type {
+    case .regular, .executable, .test, .macro:
+        var settings = target.swiftSettings ?? []
+
+        settings.append(
+            .treatAllWarnings(as: .error)
+        )
+
+        target.swiftSettings = settings
+
+    case .plugin, .system, .binary:
+        break
+
+    @unknown default:
+        break
+    }
+}

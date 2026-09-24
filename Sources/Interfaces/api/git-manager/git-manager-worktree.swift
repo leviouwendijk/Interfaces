@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public struct GitManagerWorktreeRecord:
     Sendable,
     Codable,
@@ -74,6 +77,7 @@ public struct GitManagerWorktreeCreateRequest:
     }
 }
 
+@JSONSchema
 public struct GitManagerWorktreeCreateResult:
     Sendable,
     Codable,

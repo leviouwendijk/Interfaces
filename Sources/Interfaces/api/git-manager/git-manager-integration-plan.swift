@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public enum GitManagerIntegrationClassification:
     String,
     Sendable,
@@ -13,6 +16,7 @@ public enum GitManagerIntegrationClassification:
     case unrelatedHistories = "unrelated_histories"
 }
 
+@JSONSchema
 public struct GitManagerIntegrationEndpoint:
     Sendable,
     Codable,
@@ -30,6 +34,7 @@ public struct GitManagerIntegrationEndpoint:
     }
 }
 
+@JSONSchema
 public struct GitManagerIntegrationPlan:
     Sendable,
     Codable,

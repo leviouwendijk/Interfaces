@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public enum GitManagerIntegrationExecutionStatus:
     String,
     Sendable,
@@ -11,6 +14,7 @@ public enum GitManagerIntegrationExecutionStatus:
     case alreadyIntegrated = "already_integrated"
 }
 
+@JSONSchema
 public struct GitManagerIntegrationExecution:
     Sendable,
     Codable,
@@ -46,6 +50,7 @@ public struct GitManagerIntegrationExecution:
     }
 }
 
+@JSONSchema
 public struct GitManagerIntegrationPromotion:
     Sendable,
     Codable,

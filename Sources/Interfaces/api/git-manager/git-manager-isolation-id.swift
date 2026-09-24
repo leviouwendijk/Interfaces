@@ -1,6 +1,9 @@
 import CryptoKit
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public struct GitManagerIsolationID:
     Sendable,
     Codable,

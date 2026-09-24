@@ -1,5 +1,8 @@
 import Foundation
+import Macros
+import Schema
 
+@JSONSchema
 public enum GitManagerRepositoryClassification: String, Sendable, Codable, Hashable {
     case upToDate = "up-to-date"
     case ahead
