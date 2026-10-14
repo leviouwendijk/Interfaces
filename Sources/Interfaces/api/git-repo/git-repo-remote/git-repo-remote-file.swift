@@ -1,5 +1,4 @@
 import Foundation
-import plate
 
 extension GitRepo {
     /// Fetch text content of a path at origin/<branch>. If `ref` is provided, use it (e.g. "refs/heads/master").
@@ -17,29 +16,14 @@ extension GitRepo {
         return out
     }
 
-    /// High-level: load and parse build-object from remote git. Tries modern first, then legacy→modernize.
-    public static func fetchRemoteBuildObject(
-        _ directoryURL: URL,
-        filename: String = "build-object.pkl",
-        ref: String? = nil
-    ) async throws -> BuildObjectConfiguration {
-        let text = try await fetchRemoteFile(directoryURL, path: filename, ref: ref)
-        let parser = PklParser(text)
-        if let modern = try? parser.parseBuildObject() { return modern }
-        let legacy = try parser.parseLegacyBuildObject()
-        return legacy.modernize()
-    }
-
-    public static func fetchBuildObject(fromUpdateURL urlString: String) async throws -> BuildObjectConfiguration {
+    /// Fetch generic UTF-8 text from an update URL. Build-object decoding belongs to Executable.
+    public static func fetchText(fromUpdateURL urlString: String) async throws -> String {
         guard let url = URL(string: urlString) else { throw RemoteError.badURL(urlString) }
-        let (data, resp) = try await URLSession.shared.data(from: url)
-        guard (resp as? HTTPURLResponse)?.statusCode == 200,
+        let (data, response) = try await URLSession.shared.data(from: url)
+        guard (response as? HTTPURLResponse)?.statusCode == 200,
               let text = String(data: data, encoding: .utf8) else {
             throw RemoteError.fileMissing(urlString)
         }
-        let parser = PklParser(text)
-        if let modern = try? parser.parseBuildObject() { return modern }
-        let legacy = try parser.parseLegacyBuildObject()
-        return legacy.modernize()
+        return text
     }
 }

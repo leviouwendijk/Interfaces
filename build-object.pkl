@@ -12,7 +12,7 @@ versions {
 }
 compile {
     use = true
-    arguments { "--targets" "gm" }
+    arguments { "--products" "gm" }
 }
 details = ""
 author = "levi"

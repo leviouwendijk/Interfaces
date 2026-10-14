@@ -3,12 +3,12 @@
   "failed_names" : [
 
   ],
-  "generated_at" : "2026-08-29T16:58:07Z",
+  "generated_at" : "2026-10-14T13:00:33Z",
   "passed" : 10,
   "results" : [
     {
       "display_name" : "shell",
-      "duration_seconds" : 0.400285005569458,
+      "duration_seconds" : 0.23973298072814941,
       "name" : "shell",
       "status" : "passed",
       "tags" : [
@@ -19,7 +19,7 @@
     },
     {
       "display_name" : "pty",
-      "duration_seconds" : 0.14077997207641602,
+      "duration_seconds" : 0.1393369436264038,
       "name" : "pty",
       "status" : "passed",
       "tags" : [
@@ -30,7 +30,7 @@
     },
     {
       "display_name" : "git-repo",
-      "duration_seconds" : 0.2667570114135742,
+      "duration_seconds" : 0.18287503719329834,
       "name" : "git-repo",
       "status" : "passed",
       "tags" : [
@@ -41,7 +41,7 @@
     },
     {
       "display_name" : "git-repo-acquisition",
-      "duration_seconds" : 0.2079099416732788,
+      "duration_seconds" : 0.10698795318603516,
       "name" : "git-repo-acquisition",
       "status" : "passed",
       "tags" : [
@@ -53,7 +53,7 @@
     },
     {
       "display_name" : "git-manager-diff",
-      "duration_seconds" : 1.1976720094680786,
+      "duration_seconds" : 0.5270819664001465,
       "name" : "git-manager-diff",
       "status" : "passed",
       "tags" : [
@@ -65,7 +65,7 @@
     },
     {
       "display_name" : "git-manager-worktree",
-      "duration_seconds" : 0.5298770666122437,
+      "duration_seconds" : 0.292651891708374,
       "name" : "git-manager-worktree",
       "status" : "passed",
       "tags" : [
@@ -76,7 +76,7 @@
     },
     {
       "display_name" : "git-manager-integration-plan",
-      "duration_seconds" : 1.31107497215271,
+      "duration_seconds" : 0.6784390211105347,
       "name" : "git-manager-integration-plan",
       "status" : "passed",
       "tags" : [
@@ -88,7 +88,7 @@
     },
     {
       "display_name" : "git-manager-integration-execution",
-      "duration_seconds" : 2.705475926399231,
+      "duration_seconds" : 1.388381004333496,
       "name" : "git-manager-integration-execution",
       "status" : "passed",
       "tags" : [
@@ -100,7 +100,7 @@
     },
     {
       "display_name" : "osa-script",
-      "duration_seconds" : 0.1436769962310791,
+      "duration_seconds" : 0.1313459873199463,
       "name" : "osa-script",
       "status" : "passed",
       "tags" : [
@@ -111,7 +111,7 @@
     },
     {
       "display_name" : "weasyprint",
-      "duration_seconds" : 0.4619799852371216,
+      "duration_seconds" : 0.49619102478027344,
       "name" : "weasyprint",
       "status" : "passed",
       "tags" : [

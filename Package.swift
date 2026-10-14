@@ -20,7 +20,7 @@ let package = Package(
             ]
         ),
         .executable(
-            name: "itest",
+            name: "t_interfaces",
             targets: [
                 "InterfacesTestFlows",
             ]
@@ -114,6 +114,14 @@ for target in package.targets {
 
         settings.append(
             .treatAllWarnings(as: .error)
+        )
+
+        settings.append(
+            .unsafeFlags(
+                [
+                    "-continue-building-after-errors"
+                ]
+            )
         )
 
         target.swiftSettings = settings
