@@ -17,9 +17,14 @@ enum SaveCommand: RunnableArgumentCommand {
                 arity: .variadic,
                 help: "Commit message."
             ),
+        ] + GitManagerCLI.stagingComponents() + [
             example(
                 "gm save checkpoint before sync refactor",
                 description: "Create a local commit."
+            ),
+            example(
+                "gm save -o Sources/gm checkpoint",
+                description: "Commit only the given path."
             ),
         ]
     }
@@ -31,8 +36,12 @@ enum SaveCommand: RunnableArgumentCommand {
             from: invocation
         )
 
-        GitManagerRenderer.command(
-            "git add ."
+        let staging = try GitManagerCLI.staging(
+            from: invocation
+        )
+
+        GitManagerCLI.renderStaging(
+            staging
         )
 
         GitManagerRenderer.command(
@@ -41,6 +50,7 @@ enum SaveCommand: RunnableArgumentCommand {
 
         let outputs = try await GitManagerAction.save(
             message: message,
+            staging: staging,
             at: GitManagerCLI.currentDirectory
         )
 

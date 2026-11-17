@@ -21,9 +21,18 @@ enum CommitCommand: RunnableArgumentCommand {
                 "push",
                 help: "Push after committing."
             ),
+        ] + GitManagerCLI.stagingComponents() + [
             example(
                 "gm commit update git manager --push",
                 description: "Commit and push."
+            ),
+            example(
+                "gm commit -o Sources/gm -o Package.swift fix staging --push",
+                description: "Stage and commit only the given paths."
+            ),
+            example(
+                "gm commit -x compiled.pkl regenerate specs",
+                description: "Stage everything except the given path."
             ),
         ]
     }
@@ -39,8 +48,12 @@ enum CommitCommand: RunnableArgumentCommand {
             "push"
         )
 
-        GitManagerRenderer.command(
-            "git add ."
+        let staging = try GitManagerCLI.staging(
+            from: invocation
+        )
+
+        GitManagerCLI.renderStaging(
+            staging
         )
 
         GitManagerRenderer.command(
@@ -55,6 +68,7 @@ enum CommitCommand: RunnableArgumentCommand {
 
         let outputs = try await GitManagerAction.commit(
             message: message,
+            staging: staging,
             push: push,
             at: GitManagerCLI.currentDirectory
         )

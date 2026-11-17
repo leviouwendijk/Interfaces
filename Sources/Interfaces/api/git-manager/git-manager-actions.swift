@@ -1,16 +1,48 @@
 import Foundation
 
+/// What a save/commit stages before committing.
+/// Paths are pathspecs resolved relative to the action's directory.
+public enum GitManagerStaging: Sendable, Hashable {
+    case paths(
+        [String],
+        excluding: [String]
+    )
+    /// Stage nothing; commit the index as it stands.
+    case index
+
+    public static let all: Self = .paths(
+        [
+            GitManagerAction.wholeTreePathspec,
+        ],
+        excluding: []
+    )
+}
+
 public enum GitManagerAction {
+    /// Pathspec for the whole working tree, independent of the current subdirectory.
+    public static let wholeTreePathspec = ":/"
+
     @discardableResult
     public static func prepareCommit(
         paths: [String] = [
-            ".",
+            wholeTreePathspec,
         ],
+        excluding exclusions: [String] = [],
         at directory: URL = URL(
             fileURLWithPath: FileManager.default.currentDirectoryPath
         )
     ) async throws -> String {
         let paths = paths
+            .map {
+                $0.trimmingCharacters(
+                    in: .whitespacesAndNewlines
+                )
+            }
+            .filter {
+                !$0.isEmpty
+            }
+
+        let exclusions = exclusions
             .map {
                 $0.trimmingCharacters(
                     in: .whitespacesAndNewlines
@@ -26,17 +58,39 @@ public enum GitManagerAction {
             )
         }
 
-        let root = try await requireRoot(
+        _ = try await requireRoot(
             at: directory
         )
 
         return try await GitRepo.gitOut(
-            root,
+            directory,
             [
                 "add",
                 "--",
-            ] + paths
+            ] + paths + exclusions.map {
+                ":(exclude)" + $0
+            }
         )
+    }
+
+    @discardableResult
+    public static func prepareCommit(
+        _ staging: GitManagerStaging,
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
+        )
+    ) async throws -> String? {
+        switch staging {
+        case .paths(let paths, let exclusions):
+            return try await prepareCommit(
+                paths: paths,
+                excluding: exclusions,
+                at: directory
+            )
+
+        case .index:
+            return nil
+        }
     }
 
     @discardableResult
@@ -71,24 +125,36 @@ public enum GitManagerAction {
     @discardableResult
     public static func save(
         message: String,
+        staging: GitManagerStaging = .all,
         at directory: URL = URL(
             fileURLWithPath: FileManager.default.currentDirectoryPath
         )
     ) async throws -> [String] {
-        [
-            try await prepareCommit(
-                at: directory
-            ),
+        var outputs: [String] = []
+
+        if let output = try await prepareCommit(
+            staging,
+            at: directory
+        ) {
+            outputs.append(
+                output
+            )
+        }
+
+        outputs.append(
             try await commitPrepared(
                 message: message,
                 at: directory
-            ),
-        ]
+            )
+        )
+
+        return outputs
     }
 
     @discardableResult
     public static func commit(
         message: String,
+        staging: GitManagerStaging = .all,
         push shouldPush: Bool,
         at directory: URL = URL(
             fileURLWithPath: FileManager.default.currentDirectoryPath
@@ -96,6 +162,7 @@ public enum GitManagerAction {
     ) async throws -> [String] {
         var outputs = try await save(
             message: message,
+            staging: staging,
             at: directory
         )
 
