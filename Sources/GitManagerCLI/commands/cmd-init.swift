@@ -90,6 +90,9 @@ private extension InitCommand {
         ".env",
         ".env.*",
         ".env/*",
+        ".claude/",
+        "**/.testflows/*",
+        "!**/.testflows/snapshots/",
         "compiled.pkl",
         "/compiled.pkl",
         "**/compiled.pkl"
