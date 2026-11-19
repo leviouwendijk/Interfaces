@@ -63,6 +63,8 @@ let package = Package(
             url: "https://github.com/leviouwendijk/Processes.git",
             branch: "master"
         ),
+        .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Writers.git", branch: "master"),
         .package(
             url: "https://github.com/leviouwendijk/TestFlows.git",
             branch: "master"
@@ -91,6 +93,8 @@ let package = Package(
                 "Interfaces",
                 .product(name: "ANSI", package: "ANSI"),
                 .product(name: "Arguments", package: "Arguments"),
+                .product(name: "Readers", package: "Readers"),
+                .product(name: "Writers", package: "Writers"),
             ],
             path: "Sources/GitManagerCLI"
         ),

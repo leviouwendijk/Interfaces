@@ -31,6 +31,7 @@ enum GitManagerCLICommand: ArgumentCommand {
         ResetCommand.self,
         RawCommand.self,
         InitCommand.self,
+        IgnoreCommand.self,
     ]
 
     static func main() async {

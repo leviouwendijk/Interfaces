@@ -7,10 +7,10 @@ enum InitCommand: RunnableArgumentCommand {
 
     static func components() throws -> [CommandComponentLowerable] {
         [
-            about("Initialize a git repository and merge default .gitignore entries without overwriting existing ones."),
+            about("Initialize a git repository and write the default .gitignore when there is none. An existing .gitignore is left alone; use gm ignore."),
             example(
                 "gm init",
-                description: "Run git init and merge missing default .gitignore entries."
+                description: "Run git init and create .gitignore if it is missing."
             ),
         ]
     }
@@ -43,142 +43,21 @@ enum InitCommand: RunnableArgumentCommand {
             result.out
         )
 
-        let mergeResult = try mergeGitignore(
-            at: directory
-        )
-
-        switch mergeResult {
-        case .created(let count):
+        if try GitignoreDefaults.exists(in: directory) {
+            let missing = try GitignoreDefaults.missing(in: directory)
+            if !missing.isEmpty {
+                GitManagerRenderer.output(
+                    ".gitignore left unchanged; it is missing \(missing.count) default entries. Run gm ignore to merge them."
+                )
+            }
+        } else if case .created(let count) = try GitignoreDefaults.merge(in: directory) {
             GitManagerRenderer.success(
                 "Created .gitignore with \(count) entries."
-            )
-
-        case .merged(let count):
-            GitManagerRenderer.success(
-                "Merged \(count) missing .gitignore entries."
-            )
-
-        case .unchanged:
-            GitManagerRenderer.success(
-                ".gitignore already contains all default entries."
             )
         }
 
         GitManagerRenderer.success(
             "Initialized repository."
-        )
-    }
-}
-
-private extension InitCommand {
-    enum GitignoreMergeResult {
-        case created(Int)
-        case merged(Int)
-        case unchanged
-    }
-
-    static let defaultGitignoreEntries = [
-        ".DS_Store",
-        ".build/",
-        ".index-build/",
-        ".swiftpm/",
-        "DerivedData/",
-        "*.xcodeproj/project.xcworkspace/xcuserdata/",
-        "*.xcodeproj/xcuserdata/",
-        "*.xcworkspace/xcuserdata/",
-        "xcuserdata/",
-        ".env",
-        ".env.*",
-        ".env/*",
-        ".claude/",
-        "**/.testflows/*",
-        "!**/.testflows/snapshots/",
-        "compiled.pkl",
-        "/compiled.pkl",
-        "**/compiled.pkl"
-    ]
-
-    static func mergeGitignore(
-        at directory: URL
-    ) throws -> GitignoreMergeResult {
-        let file = directory.appendingPathComponent(
-            ".gitignore"
-        )
-
-        let fileManager = FileManager.default
-
-        guard fileManager.fileExists(
-            atPath: file.path
-        ) else {
-            let content = defaultGitignoreEntries.joined(
-                separator: "\n"
-            ) + "\n"
-
-            try content.write(
-                to: file,
-                atomically: true,
-                encoding: .utf8
-            )
-
-            return .created(
-                defaultGitignoreEntries.count
-            )
-        }
-
-        let existing = try String(
-            contentsOf: file,
-            encoding: .utf8
-        )
-
-        let existingEntries = Set(
-            existing
-                .split(
-                    separator: "\n",
-                    omittingEmptySubsequences: false
-                )
-                .map(String.init)
-                .map {
-                    $0.trimmingCharacters(
-                        in: .whitespacesAndNewlines
-                    )
-                }
-                .filter {
-                    !$0.isEmpty
-                }
-        )
-
-        let missing = defaultGitignoreEntries.filter {
-            !existingEntries.contains($0)
-        }
-
-        guard !missing.isEmpty else {
-            return .unchanged
-        }
-
-        var updated = existing
-
-        if !updated.hasSuffix("\n") {
-            updated += "\n"
-        }
-
-        if !updated.hasSuffix("\n\n") {
-            updated += "\n"
-        }
-
-        updated += "# gm defaults\n"
-        updated += missing.joined(
-            separator: "\n"
-        )
-        updated += "\n"
-
-        try updated.write(
-            to: file,
-            atomically: true,
-            encoding: .utf8
-        )
-
-        return .merged(
-            missing.count
         )
     }
 }
