@@ -8,6 +8,7 @@ public enum GitManagerError: Error, LocalizedError, Sendable {
     case unsafeSync(String)
     case resetRequiresHardUpstream
     case gitFailed(command: [String], code: Int32, stderr: String)
+    case invalidRelease(String)
 
     public var errorDescription: String? {
         switch self {
@@ -32,6 +33,9 @@ public enum GitManagerError: Error, LocalizedError, Sendable {
         case .gitFailed(let command, let code, let stderr):
             let rendered = command.joined(separator: " ")
             return "git \(rendered) exited with \(code): \(stderr)"
+
+        case .invalidRelease(let text):
+            return "'\(text)' is not a release: use major, minor, patch or a version x.y.z."
         }
     }
 }

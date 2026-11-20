@@ -1,4 +1,5 @@
 import Foundation
+import Version
 
 /// What a save/commit stages before committing.
 /// Paths are pathspecs resolved relative to the action's directory.
@@ -151,22 +152,62 @@ public enum GitManagerAction {
         return outputs
     }
 
+    /// Commits, and pushes when asked. With `release`, the new commit is tagged with the
+    /// release version locally, then the branch and the tag are pushed in one atomic push
+    /// (both or neither); a failed push removes the local tag again. A release always pushes.
     @discardableResult
     public static func commit(
         message: String,
         staging: GitManagerStaging = .all,
         push shouldPush: Bool,
+        release: ReleaseTarget? = nil,
         at directory: URL = URL(
             fileURLWithPath: FileManager.default.currentDirectoryPath
         )
     ) async throws -> [String] {
+        if let release {
+            // Refuse a version that cannot be released before anything is committed.
+            _ = try await GitRepo.plannedRelease(
+                release,
+                at: try await requireRoot(
+                    at: directory
+                )
+            )
+        }
+
         var outputs = try await save(
             message: message,
             staging: staging,
             at: directory
         )
 
-        if shouldPush {
+        if let release {
+            let root = try await requireRoot(
+                at: directory
+            )
+            let tagged = try await GitRepo.tagRelease(
+                release,
+                at: root,
+                requirePushed: false
+            )
+            let tag = ReleaseTag.name(
+                for: tagged.to
+            )
+            do {
+                outputs.append(
+                    try await pushRelease(
+                        tag: tag,
+                        at: root
+                    )
+                )
+            } catch {
+                try? await GitRepo.deleteTag(
+                    tag,
+                    at: root
+                )
+                throw error
+            }
+        } else if shouldPush {
             outputs.append(
                 try await GitManagerAction.push(
                     at: directory
@@ -266,6 +307,35 @@ public enum GitManagerAction {
                 "-u",
                 upstream.remote,
                 upstream.branch,
+            ]
+        )
+    }
+
+    /// Pushes the current branch and a release tag atomically to the default remote.
+    @discardableResult
+    public static func pushRelease(
+        tag: String,
+        at directory: URL = URL(
+            fileURLWithPath: FileManager.default.currentDirectoryPath
+        )
+    ) async throws -> String {
+        let root = try await requireRoot(
+            at: directory
+        )
+
+        let upstream = try await GitRepo.defaultRemoteAndBranch(
+            root
+        )
+
+        return try await GitRepo.gitOut(
+            root,
+            [
+                "push",
+                "--atomic",
+                "-u",
+                upstream.remote,
+                upstream.branch,
+                "refs/tags/\(tag)",
             ]
         )
     }

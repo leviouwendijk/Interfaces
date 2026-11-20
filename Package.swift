@@ -59,6 +59,7 @@ let package = Package(
         ),
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Writers.git", branch: "master"),
+        .package(url: "https://github.com/leviouwendijk/Version.git", branch: "master"),
     ],
     targets: [
         .target(
@@ -72,6 +73,7 @@ let package = Package(
                 .product(name: "Arguments", package: "Arguments"),
                 .product(name: "Difference", package: "Difference"),
                 .product(name: "Processes", package: "Processes"),
+                .product(name: "Version", package: "Version"),
             ],
             resources: [
                 .process("Resources")
@@ -85,6 +87,7 @@ let package = Package(
                 .product(name: "Arguments", package: "Arguments"),
                 .product(name: "Readers", package: "Readers"),
                 .product(name: "Writers", package: "Writers"),
+                .product(name: "Version", package: "Version"),
             ],
             path: "Sources/GitManagerCLI"
         ),
