@@ -19,12 +19,6 @@ let package = Package(
                 "gm",
             ]
         ),
-        .executable(
-            name: "t_interfaces",
-            targets: [
-                "InterfacesTestFlows",
-            ]
-        ),
     ],
     dependencies: [
         .package(
@@ -65,10 +59,6 @@ let package = Package(
         ),
         .package(url: "https://github.com/leviouwendijk/Readers.git", branch: "master"),
         .package(url: "https://github.com/leviouwendijk/Writers.git", branch: "master"),
-        .package(
-            url: "https://github.com/leviouwendijk/TestFlows.git",
-            branch: "master"
-        ),
     ],
     targets: [
         .target(
@@ -97,16 +87,6 @@ let package = Package(
                 .product(name: "Writers", package: "Writers"),
             ],
             path: "Sources/GitManagerCLI"
-        ),
-        .executableTarget(
-            name: "InterfacesTestFlows",
-            dependencies: [
-                "Interfaces",
-                .product(
-                    name: "TestFlows",
-                    package: "TestFlows"
-                ),
-            ]
         ),
     ]
 )
