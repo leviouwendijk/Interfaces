@@ -31,6 +31,19 @@ extension GitRepo {
         ReleaseTag.latest(in: try await tagNames(at: directory, ["tag", "--merged", "HEAD", "--list"]))
     }
 
+    /// The newest release tag on the default remote, read with `ls-remote` (no fetch, nothing
+    /// changes locally). Shows whether the remote has released past the local checkout.
+    public static func latestRemoteRelease(at directory: URL) async throws -> ObjectVersion? {
+        let (remote, _) = try await defaultRemoteAndBranch(directory)
+        let names = try await tagNames(at: directory, ["ls-remote", "--tags", "--refs", remote])
+            .compactMap { line in
+                line.split(whereSeparator: \.isWhitespace).last.map {
+                    String($0).replacingOccurrences(of: "refs/tags/", with: "")
+                }
+            }
+        return ReleaseTag.latest(in: names)
+    }
+
     /// Tags HEAD with the target's version, annotated, without pushing. Refuses a dirty HEAD, a
     /// HEAD that is already released, a version tagged before, and a version not newer than the
     /// latest release. With `requirePushed`, HEAD must already be on its upstream (the tag then
